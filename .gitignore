@@ -57,3 +57,13 @@ playwright-report/
 *.mov
 *.webm
 Recording*
+
+# CDK (backend/)
+backend/cdk.out/
+backend/**/*.d.ts
+backend/**/*.js
+!backend/jest.config.js
+
+# Next.js (frontend/, if used)
+frontend/.next/
+frontend/out/
