@@ -1,0 +1,483 @@
+/* ==========================================================================
+   CheckOn — Authentication Modal Styles
+   Matches the reference screenshot design:
+   - 2-column rounded card on dark blurred backdrop
+   - Left side: Pristine CheckOn diff illustration banner
+   - Right side: Clean, high-contrast Welcome back login form
+   - Playful yellow hand-drawn burst accents
+   ========================================================================== */
+
+/* Overlay Backdrop */
+.checkon-auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 23, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 40px;
+  overflow: visible;
+  animation: checkon-fade-in 0.2s ease-out;
+}
+
+@keyframes checkon-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Dialog Card */
+.checkon-auth-dialog {
+  background: #FFFFFF;
+  border-radius: 28px;
+  width: 100%;
+  max-width: 960px;
+  position: relative;
+  overflow: visible;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  animation: checkon-dialog-rise 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+}
+
+.checkon-auth-corner-burst {
+  position: absolute;
+  top: -28px;
+  right: -32px;
+  width: 58px;
+  height: auto;
+  pointer-events: none;
+  z-index: 4;
+  user-select: none;
+}
+
+@keyframes checkon-dialog-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+/* Close Button */
+.checkon-auth-close-btn {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #E5E7EB;
+  background: #FFFFFF;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  z-index: 6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.checkon-auth-close-btn:hover {
+  background: #F3F4F6;
+  color: #111827;
+  border-color: #D1D5DB;
+  transform: scale(1.05);
+}
+
+/* Two-Column Layout */
+.checkon-auth-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  align-items: stretch;
+  min-height: 530px;
+}
+
+/* Left Column: Graphic Banner */
+.checkon-auth-left-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 32px;
+  border-right: 1px solid #EFEFEF;
+  background: #FFFFFF;
+  border-top-left-radius: 28px;
+  border-bottom-left-radius: 28px;
+}
+
+.checkon-auth-banner-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkon-auth-banner-img {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* Right Column: Form Container */
+.checkon-auth-right-col {
+  padding: 44px 44px 38px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #FFFFFF;
+  border-top-right-radius: 28px;
+  border-bottom-right-radius: 28px;
+}
+
+.checkon-auth-header {
+  margin-bottom: 24px;
+}
+
+.checkon-auth-heading {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0 0 6px 0;
+}
+
+.checkon-auth-subheading {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Form Styles */
+.checkon-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.checkon-input-group {
+  position: relative;
+  width: 100%;
+}
+
+.checkon-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9CA3AF;
+  pointer-events: none;
+}
+
+.checkon-input-field {
+  width: 100%;
+  height: 50px;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  background: #FAFAFA;
+  font-size: 14.5px;
+  color: #111827;
+  padding: 0 42px 0 44px;
+  outline: none;
+  transition: all 0.18s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.checkon-input-field::placeholder {
+  color: #9CA3AF;
+}
+
+.checkon-input-field:focus {
+  background: #FFFFFF;
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
+}
+
+.checkon-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+}
+
+.checkon-password-toggle:hover {
+  color: #374151;
+}
+
+/* Remember Me & Forgot Password Row */
+.checkon-auth-options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+  margin-bottom: 6px;
+  font-size: 13.5px;
+}
+
+.checkon-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkon-checkbox-input {
+  width: 16px;
+  height: 16px;
+  accent-color: #111111;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 0;
+}
+
+.checkon-forgot-link {
+  background: none;
+  border: none;
+  color: #4B5563;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.checkon-forgot-link:hover {
+  color: #111827;
+}
+
+/* Feedback Messages */
+.checkon-auth-msg {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.checkon-auth-msg.error {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
+}
+
+.checkon-auth-msg.info {
+  background: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+/* Submit Button */
+.checkon-auth-submit-btn {
+  width: 100%;
+  height: 48px;
+  background: #111111;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 4px;
+}
+
+.checkon-auth-submit-btn:hover {
+  background: #000000;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.checkon-auth-submit-btn:active {
+  transform: translateY(0);
+}
+
+.checkon-auth-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Or Divider */
+.checkon-auth-or-divider {
+  margin: 18px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #9CA3AF;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.checkon-auth-or-divider::before,
+.checkon-auth-or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #E5E7EB;
+}
+
+/* Google OAuth Button */
+.checkon-auth-google-button {
+  width: 100%;
+  height: 48px;
+  background: #FFFFFF;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #1F2937;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: all 0.18s ease;
+}
+
+.checkon-auth-google-button:hover {
+  background: #F9FAFB;
+  border-color: #D1D5DB;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.checkon-auth-google-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Demo Quick Access */
+.checkon-auth-demo-row {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.checkon-auth-demo-link {
+  background: none;
+  border: none;
+  color: #D97706;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.15s ease;
+}
+
+.checkon-auth-demo-link:hover {
+  color: #B45309;
+  text-decoration: underline;
+}
+
+/* Switch Mode Footer */
+.checkon-auth-switch-footer {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 14px;
+  color: #4B5563;
+}
+
+.checkon-auth-switch-footer p {
+  margin: 0;
+}
+
+.checkon-switch-button {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111111;
+  cursor: pointer;
+  padding: 0 4px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.checkon-switch-text {
+  position: relative;
+  z-index: 2;
+}
+
+/* Yellow Marker Highlight Under "Sign up" */
+.checkon-yellow-highlight {
+  position: absolute;
+  bottom: 0px;
+  left: 2px;
+  right: 2px;
+  height: 6px;
+  background: #FED049;
+  border-radius: 3px;
+  z-index: 1;
+  transform: rotate(-1.5deg);
+}
+
+.checkon-switch-spark {
+  position: absolute;
+  right: -16px;
+  top: -6px;
+  display: inline-flex;
+  pointer-events: none;
+}
+
+/* Responsive Styles */
+@media (max-width: 820px) {
+  .checkon-auth-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checkon-auth-left-col {
+    display: none;
+  }
+
+  .checkon-auth-right-col {
+    padding: 36px 28px 30px;
+    border-radius: 28px;
+  }
+
+  .checkon-auth-dialog {
+    max-width: 440px;
+  }
+
+  .checkon-auth-corner-burst {
+    width: 50px;
+    top: -24px;
+    right: -26px;
+  }
+}

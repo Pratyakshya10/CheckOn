@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+
+# Local env — never commit secrets (.env.example stays tracked)
+.env
+.env.*
+!.env.example
+apps/*/.env
+apps/*/.env.*
+!apps/*/.env.example
+
+# Credentials
+*.pem
+*.key
+credentials.json
+service-account*.json
+**/secrets/
+
+# Build outputs (includes hashed copies of images)
+dist/
+build/
+.turbo/
+.vercel/
+*.tsbuildinfo
+
+# Debug / logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+.cursor/
+
+# Test
+coverage/
+test-results/
+playwright-report/
+
+# Design source files — keep exported product images in apps/web/public/assets
+*.psd
+*.fig
+*.sketch
+*.ai
+*.xd
+
+# Scratch / generated dumps at repo root
+/ChatGPT Image*.png
+/*reference*.png
+
+# Recordings
+*.mp4
+*.mov
+*.webm
+Recording*

@@ -1,0 +1,24 @@
+{
+  "name": "checkon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CheckOn — Track any public webpage for real changes. Get notified only when it actually matters.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev -w @checkon/web\" \"npm run dev -w @checkon/api\"",
+    "dev:web": "npm run dev -w @checkon/web",
+    "dev:api": "npm run dev -w @checkon/api",
+    "build": "npm run build -w @checkon/web",
+    "preview": "npm run preview -w @checkon/web",
+    "check-types": "npm run check-types --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
