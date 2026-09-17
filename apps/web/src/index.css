@@ -1,0 +1,754 @@
+/* ==========================================================================
+   CheckOn — Bold & Scaled-Up Master Design System
+   Scaled up generously for wide desktop displays (1440px - 1536px+).
+   Large typography, commanding graphics, deep contrast, and balanced whitespace.
+   ========================================================================== */
+
+:root {
+  --bg-page: #FAF9F5;
+  --bg-banner: #F3F1E9;
+  --bg-card: #FFFFFF;
+  
+  --text-main: #111111;
+  --text-secondary: #484D58;
+  --text-muted: #8E939E;
+  
+  --border-subtle: #EBEAE3;
+  --border-light: #E5E7EB;
+  
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  --radius-pill: 9999px;
+  --radius-xl: 32px;
+  --radius-card: 24px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--bg-page);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Master Container: Sized up to 1340px for expansive presence */
+.site-container {
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+/* ==========================================================================
+   Navigation Bar
+   ========================================================================== */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 249, 245, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: padding 0.2s ease, border-color 0.2s ease;
+}
+
+.navbar.scrolled {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brand-logo-img {
+  height: 54px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.brand-logo-img:hover {
+  transform: scale(1.02);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 44px;
+  list-style: none;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #3F4450;
+  font-weight: 550;
+  font-size: 17px;
+  transition: color 0.15s ease;
+}
+
+.nav-link:hover {
+  color: #111111;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.btn-signin {
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+  color: #111111;
+  cursor: pointer;
+  padding: 10px 14px;
+  transition: opacity 0.15s ease;
+}
+
+.btn-signin:hover {
+  opacity: 0.7;
+}
+
+.btn-get-started {
+  background: #111111;
+  color: #FFFFFF;
+  border: 1px solid #111111;
+  border-radius: var(--radius-pill);
+  padding: 15px 30px;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+}
+
+.btn-get-started:hover {
+  background: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+}
+
+.user-profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: #FFFFFF;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #111111;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-signout {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #6B7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.btn-signout:hover {
+  background: #F3F4F6;
+  color: #111111;
+}
+
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
+.hero-section {
+  padding: 60px 0 100px;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-tagline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #555A64;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.hero-tagline-rays {
+  width: 22px;
+  height: auto;
+  opacity: 0.9;
+}
+
+.hero-heading-wrap {
+  margin-bottom: 28px;
+}
+
+.hero-heading-img {
+  width: 100%;
+  max-width: 620px;
+  height: auto;
+  display: block;
+}
+
+.hero-desc {
+  font-size: 21px;
+  line-height: 1.6;
+  color: #434854;
+  margin-bottom: 40px;
+  max-width: 530px;
+  font-weight: 450;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.btn-hero-primary {
+  background: #111111;
+  color: #FFFFFF;
+  border: 1px solid #111111;
+  border-radius: var(--radius-pill);
+  padding: 18px 36px;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+}
+
+.btn-hero-primary:hover {
+  background: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.2);
+}
+
+.btn-hero-secondary {
+  background: #FAF9F5;
+  color: #111111;
+  border: 1.5px solid #D5D7DE;
+  border-radius: var(--radius-pill);
+  padding: 18px 34px;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-hero-secondary:hover {
+  background: #FFFFFF;
+  border-color: #111111;
+  transform: translateY(-2px);
+}
+
+.hero-trust-note {
+  font-size: 15px;
+  color: #8C919C;
+  font-weight: 500;
+}
+
+/* Hero Illustration Column */
+.hero-visual-wrap {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.hero-illustration-img {
+  width: 100%;
+  max-width: 680px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   How It Works (Three Simple Steps)
+   ========================================================================== */
+.how-it-works-section {
+  padding: 90px 0 110px;
+  text-align: center;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.section-eyebrow {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #8A8F9A;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 46px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #111111;
+  margin-bottom: 64px;
+}
+
+.steps-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr 60px 1fr;
+  align-items: center;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 14px;
+}
+
+.step-num-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #F1EFEA;
+  border: 1.5px solid #E0DED4;
+  color: #4A505C;
+  font-size: 15px;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.step-icon-box {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.step-icon-img {
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.step-item:hover .step-icon-img {
+  transform: scale(1.08);
+}
+
+.step-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111111;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.step-desc {
+  font-size: 16px;
+  color: #4F5562;
+  line-height: 1.5;
+  max-width: 250px;
+}
+
+.step-separator-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #C0C5CF;
+  margin-top: -30px;
+}
+
+/* ==========================================================================
+   Example / Diff Section
+   ========================================================================== */
+.diff-showcase-section {
+  padding: 100px 0 130px;
+  display: grid;
+  grid-template-columns: 0.88fr 1.45fr;
+  gap: 60px;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.diff-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.badge-example-img {
+  height: 52px;
+  width: auto;
+  align-self: flex-start;
+  margin-bottom: 24px;
+}
+
+.diff-headline {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #111111;
+  line-height: 1.15;
+  margin-bottom: 22px;
+}
+
+.diff-subtitle {
+  font-size: 21px;
+  color: #4F5562;
+  line-height: 1.55;
+  margin-bottom: 40px;
+  max-width: 460px;
+}
+
+.diff-preview-card-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.diff-card-main-img {
+  width: 100%;
+  max-width: 860px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   Why People Use CheckOn (4-column Features)
+   ========================================================================== */
+.features-section {
+  padding: 90px 0 120px;
+  text-align: center;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 40px;
+  margin-top: 64px;
+  text-align: left;
+}
+
+.feature-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-icon-container {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 22px;
+  color: #111111;
+}
+
+.feature-heading {
+  font-size: 19px;
+  font-weight: 800;
+  color: #111111;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.feature-text {
+  font-size: 16px;
+  color: #4F5562;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   Bottom CTA Banner
+   ========================================================================== */
+.cta-banner-section {
+  padding: 20px 0 100px;
+}
+
+.cta-banner-card {
+  background-color: var(--bg-banner);
+  border-radius: var(--radius-xl);
+  padding: 64px 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  border: 1px solid #EBE9DF;
+}
+
+.cta-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
+.cta-curved-arrow {
+  width: 56px;
+  height: 56px;
+  color: #111111;
+  flex-shrink: 0;
+}
+
+.cta-callout-img {
+  height: 84px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.cta-banner-right {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.cta-action-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-cta-submit {
+  background: #111111;
+  color: #FFFFFF;
+  border: 1px solid #111111;
+  border-radius: var(--radius-pill);
+  padding: 18px 38px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.btn-cta-submit:hover {
+  background: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+}
+
+.cta-subnote {
+  font-size: 14.5px;
+  color: #555A64;
+  font-weight: 500;
+}
+
+.cta-burst-ray {
+  position: absolute;
+  right: -48px;
+  top: 14%;
+  width: 40px;
+  height: auto;
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+.footer-wrap {
+  padding: 48px 0 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 15px;
+  color: #6B7280;
+}
+
+.footer-logo {
+  height: 40px;
+  width: auto;
+}
+
+.footer-nav {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  list-style: none;
+}
+
+.footer-link {
+  text-decoration: none;
+  color: #4A505C;
+  font-weight: 550;
+  font-size: 16px;
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: #111111;
+}
+
+.footer-tagline {
+  font-size: 15px;
+  color: #8C919C;
+}
+
+
+
+/* ==========================================================================
+   Responsive Rules
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .hero-section {
+    grid-template-columns: 1fr;
+    gap: 56px;
+    text-align: center;
+  }
+
+  .hero-content {
+    align-items: center;
+  }
+
+  .hero-visual-wrap {
+    justify-content: center;
+  }
+
+  .diff-showcase-section {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 56px;
+  }
+
+  .badge-example-img {
+    align-self: center;
+  }
+
+  .diff-preview-card-wrap {
+    justify-content: center;
+  }
+
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cta-banner-card {
+    flex-direction: column;
+    gap: 40px;
+    padding: 50px 32px;
+    text-align: center;
+  }
+
+  .cta-banner-left {
+    flex-direction: column;
+  }
+
+  .cta-curved-arrow {
+    transform: rotate(90deg);
+  }
+
+  .cta-burst-ray {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+
+  .steps-row {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .step-separator-arrow {
+    transform: rotate(90deg);
+    margin: 0;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-wrap {
+    flex-direction: column;
+    gap: 24px;
+    text-align: center;
+  }
+}
