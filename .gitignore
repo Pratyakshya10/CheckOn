@@ -5,9 +5,9 @@ node_modules/
 .env
 .env.*
 !.env.example
-apps/*/.env
-apps/*/.env.*
-!apps/*/.env.example
+frontend/apps/*/.env
+frontend/apps/*/.env.*
+!frontend/apps/*/.env.example
 
 # Credentials
 *.pem
@@ -67,3 +67,6 @@ backend/**/*.js
 # Next.js (frontend/, if used)
 frontend/.next/
 frontend/out/
+
+# Claude Code local session/settings
+.claude/
