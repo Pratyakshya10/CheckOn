@@ -16,6 +16,7 @@ export interface ChangePipelineProps {
   snapshotsBucket: s3.IBucket;
   bedrockModelArn: string;
   publicSiteUrl: string;
+  sesFromAddress: string;
 }
 
 /**
@@ -63,7 +64,7 @@ export class ChangePipeline extends Construct {
     const sendNowFn = new NodejsFunction(this, "SendNowFn", {
       ...nodeFunctionDefaults,
       entry: "src/handlers/pipeline/send-now.ts",
-      environment: { PUBLIC_SITE_URL: props.publicSiteUrl },
+      environment: { PUBLIC_SITE_URL: props.publicSiteUrl, SES_FROM_ADDRESS: props.sesFromAddress },
     });
     sendNowFn.addToRolePolicy(sesSendPolicy());
 

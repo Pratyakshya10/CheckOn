@@ -21,6 +21,11 @@ const dataStack = new DataStack(app, "CheckOnData", { env });
 const publicSiteStack = new PublicSiteStack(app, "CheckOnPublicSite", { env });
 const publicSiteUrl = `https://${publicSiteStack.distribution.distributionDomainName}`;
 
+// Placeholder until a real sending identity is verified in SES (see backend/README.md).
+// Not thrown on missing since there's nothing to send from yet - override at deploy time
+// once you've picked and verified a real address.
+const SES_FROM_ADDRESS = process.env.SES_FROM_ADDRESS ?? "alerts@checkon.app";
+
 new PipelineStack(app, "CheckOnPipeline", {
   env,
   watchesTable: dataStack.watchesTable,
@@ -31,6 +36,7 @@ new PipelineStack(app, "CheckOnPipeline", {
   publicSiteBucket: publicSiteStack.bucket,
   bedrockModelArn: BEDROCK_MODEL_ARN,
   publicSiteUrl,
+  sesFromAddress: SES_FROM_ADDRESS,
 });
 
 // Must match apps/api's SESSION_SECRET exactly - that's what issues the

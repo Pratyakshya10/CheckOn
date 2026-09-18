@@ -21,6 +21,7 @@ export interface PipelineStackProps extends StackProps {
   publicSiteBucket: s3.Bucket;
   bedrockModelArn: string;
   publicSiteUrl: string;
+  sesFromAddress: string;
 }
 
 export class PipelineStack extends Stack {
@@ -79,6 +80,7 @@ export class PipelineStack extends Stack {
       snapshotsBucket: props.snapshotsBucket,
       bedrockModelArn: props.bedrockModelArn,
       publicSiteUrl: props.publicSiteUrl,
+      sesFromAddress: props.sesFromAddress,
     });
     fetchFn.addEnvironment("CHANGE_PIPELINE_ARN", changePipeline.stateMachine.stateMachineArn);
     changePipeline.stateMachine.grantStartExecution(fetchFn);
@@ -108,7 +110,7 @@ export class PipelineStack extends Stack {
     const sendDigestFn = new NodejsFunction(this, "SendDigestFn", {
       ...nodeFunctionDefaults,
       entry: "src/handlers/digest/send-digest.ts",
-      environment: { PUBLIC_SITE_URL: props.publicSiteUrl },
+      environment: { PUBLIC_SITE_URL: props.publicSiteUrl, SES_FROM_ADDRESS: props.sesFromAddress },
     });
     sendDigestFn.addToRolePolicy(new iam.PolicyStatement({ actions: ["ses:SendEmail"], resources: ["*"] }));
 
