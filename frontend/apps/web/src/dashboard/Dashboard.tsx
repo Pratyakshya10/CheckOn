@@ -799,8 +799,8 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     showToast("Notifications cleared.", "info");
   };
 
-  const fullName = user?.fullName || "Watcher";
-  const firstName = user?.fullName ? user.fullName.split(" ")[0] : "there";
+  const fullName = user?.fullName || "Ishaan";
+  const firstName = user?.fullName ? user.fullName.split(" ")[0] : "Ishaan";
   const userInitials =
     user?.fullName
       ?.split(" ")
@@ -808,7 +808,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
       .map((n) => n[0])
       .join("")
       .substring(0, 2)
-      .toUpperCase() || "CO";
+      .toUpperCase() || "IS";
 
   /* Sparkline Component */
   const Sparkline = ({ data }: { data: number[] }) => {
@@ -837,6 +837,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     <>
       <div className="dashboard-hero-row">
         <div className="hero-left-text">
+          <h1 className="hero-greeting">Hi, {firstName}</h1>
           <p className="hero-context-text">since your last visit ({lastVisit})...</p>
           <div className="hero-heading-wrap">
             <img

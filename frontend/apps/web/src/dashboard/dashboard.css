@@ -464,48 +464,54 @@
 /* Greeting Hero Row */
 .dashboard-hero-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 28px;
+  margin-bottom: -4px;
 }
 
 .hero-left-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   flex: 1;
   max-width: 720px;
 }
 
 .hero-greeting {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #1F2937;
+  color: #111827;
   margin: 0 0 2px 0;
   letter-spacing: -0.015em;
 }
 
 .hero-context-text {
-  font-size: 14px;
+  font-size: 13.5px;
   font-style: italic;
   color: #6B7280;
   margin: 0 0 2px 0;
 }
 
+.hero-left-text .hero-heading-wrap {
+  margin: 0;
+  padding: 0;
+}
+
 .dashboard-heading-img {
-  height: 104px;
+  height: 122px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
-  margin: 6px 0 12px -6px;
+  margin: 2px 0 6px -6px;
   display: block;
 }
 
 .hero-subtext {
-  font-size: 15px;
+  font-size: 14.5px;
   color: #6B7280;
   margin: 0;
-  line-height: 1.45;
+  line-height: 1.4;
   max-width: 640px;
 }
 
@@ -2798,7 +2804,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 4px;
+  margin-top: -72px;
 }
 
 .digest-doodle-wrap {
@@ -2810,7 +2816,8 @@
 
 .digest-side-doodle-img {
   width: 100%;
-  max-width: 410px;
+  max-width: 385px;
+  max-height: calc(100vh - 115px);
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.05));
