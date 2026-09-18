@@ -1,7 +1,7 @@
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
-import type { AuthUser } from "./session";
+import type { AuthUser } from "./types";
 
 const scrypt = promisify(scryptCallback);
 

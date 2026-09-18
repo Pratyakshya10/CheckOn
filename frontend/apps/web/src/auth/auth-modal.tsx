@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { X, Mail, Lock, Eye, EyeOff, User, ArrowRight } from 'lucide-react';
-import { useAuth } from './auth-context';
-import { GoogleIcon } from './google-icon';
-import { isDemoLoginEnabled } from '../lib/demo-config';
-import './auth.css';
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { X, Mail, Lock, Eye, EyeOff, User, ArrowRight } from "lucide-react";
+import { useAuth } from "./auth-context";
+import { GoogleIcon } from "./google-icon";
+import "./auth.css";
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Authentication failed. Please try again.";
+}
 
 export function AuthModal() {
   const {
@@ -17,43 +20,43 @@ export function AuthModal() {
     signup,
   } = useAuth();
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [infoMsg, setInfoMsg] = useState('');
+  const [error, setError] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isLogin = authMode === 'sign-in';
+  const isLogin = authMode === "sign-in";
 
   useEffect(() => {
     if (!isAuthOpen) return undefined;
 
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
-    const onKey = (event) => {
-      if (event.key === 'Escape') closeAuth();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeAuth();
     };
-    window.addEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
 
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener("keydown", onKey);
     };
   }, [isAuthOpen, closeAuth]);
 
   useEffect(() => {
-    setFullName('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
+    setFullName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
     setShowPassword(false);
-    setError('');
-    setInfoMsg('');
+    setError("");
+    setInfoMsg("");
   }, [authMode]);
 
   useEffect(() => {
@@ -62,11 +65,11 @@ export function AuthModal() {
 
   if (!isAuthOpen) return null;
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError('');
-    setInfoMsg('');
-    setAuthError('');
+    setError("");
+    setInfoMsg("");
+    setAuthError("");
     setLoading(true);
 
     try {
@@ -76,7 +79,7 @@ export function AuthModal() {
         await signup(fullName, email, password, confirmPassword, keepSignedIn);
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please try again.');
+      setError(errorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -84,15 +87,24 @@ export function AuthModal() {
 
   const handleForgotPassword = () => {
     if (!email) {
-      setInfoMsg('Enter your email above to receive password reset instructions.');
+      setInfoMsg("Enter your email above to receive password reset instructions.");
     } else {
       setInfoMsg(`Password reset link sent to ${email}`);
     }
   };
 
   return (
-    <div className="checkon-auth-overlay" onClick={closeAuth} role="dialog" aria-modal="true" aria-labelledby="checkon-auth-heading">
-      <div className="checkon-auth-dialog" onClick={(event) => event.stopPropagation()}>
+    <div
+      className="checkon-auth-overlay"
+      onClick={closeAuth}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="checkon-auth-heading"
+    >
+      <div
+        className="checkon-auth-dialog"
+        onClick={(event: MouseEvent<HTMLDivElement>) => event.stopPropagation()}
+      >
         <img
           src="/assets/auth-corner-burst.png"
           alt=""
@@ -123,12 +135,12 @@ export function AuthModal() {
           <div className="checkon-auth-right-col">
             <div className="checkon-auth-header">
               <h2 className="checkon-auth-heading" id="checkon-auth-heading">
-                {isLogin ? 'Welcome back!' : 'Create an account'}
+                {isLogin ? "Welcome back!" : "Create an account"}
               </h2>
               <p className="checkon-auth-subheading">
                 {isLogin
-                  ? 'Log in to continue monitoring what matters.'
-                  : 'Start monitoring web changes in real-time.'}
+                  ? "Log in to continue monitoring what matters."
+                  : "Start monitoring web changes in real-time."}
               </p>
             </div>
 
@@ -166,19 +178,19 @@ export function AuthModal() {
               <div className="checkon-input-group">
                 <Lock className="checkon-input-icon" size={18} />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   className="checkon-input-field"
-                  placeholder={isLogin ? 'Password' : 'Password (min. 6 chars)'}
+                  placeholder={isLogin ? "Password" : "Password (min. 6 chars)"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
-                  autoComplete={isLogin ? 'current-password' : 'new-password'}
+                  autoComplete={isLogin ? "current-password" : "new-password"}
                 />
                 <button
                   type="button"
                   className="checkon-password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -189,7 +201,7 @@ export function AuthModal() {
                 <div className="checkon-input-group">
                   <Lock className="checkon-input-icon" size={18} />
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     className="checkon-input-field"
                     placeholder="Confirm password"
                     value={confirmPassword}
@@ -211,25 +223,17 @@ export function AuthModal() {
                     />
                     <span>Keep me signed in</span>
                   </label>
-                  <button
-                    type="button"
-                    className="checkon-forgot-link"
-                    onClick={handleForgotPassword}
-                  >
+                  <button type="button" className="checkon-forgot-link" onClick={handleForgotPassword}>
                     Forgot password?
                   </button>
                 </div>
               )}
 
-              {error && <div className="checkon-auth-msg error">{error}</div>}
-              {infoMsg && <div className="checkon-auth-msg info">{infoMsg}</div>}
+              {error ? <div className="checkon-auth-msg error">{error}</div> : null}
+              {infoMsg ? <div className="checkon-auth-msg info">{infoMsg}</div> : null}
 
-              <button
-                type="submit"
-                className="checkon-auth-submit-btn"
-                disabled={loading}
-              >
-                <span>{loading ? 'Please wait...' : isLogin ? 'Log in' : 'Sign up'}</span>
+              <button type="submit" className="checkon-auth-submit-btn" disabled={loading}>
+                <span>{loading ? "Please wait..." : isLogin ? "Log in" : "Sign up"}</span>
                 <ArrowRight size={17} />
               </button>
             </form>
@@ -243,26 +247,18 @@ export function AuthModal() {
               <span>Continue with Google</span>
             </a>
 
-            {isDemoLoginEnabled() && (
-              <div className="checkon-auth-demo-row">
-                <a href="/auth/demo" className="checkon-auth-demo-link">
-                  ⚡ Try Demo (No signup needed)
-                </a>
-              </div>
-            )}
-
             <div className="checkon-auth-switch-footer">
               {isLogin ? (
                 <p>
-                  Don't have an account?{' '}
+                  Don't have an account?{" "}
                   <button
                     type="button"
                     className="checkon-switch-button"
                     onClick={() => {
-                      setError('');
-                      setInfoMsg('');
-                      setAuthError('');
-                      setAuthMode('sign-up');
+                      setError("");
+                      setInfoMsg("");
+                      setAuthError("");
+                      setAuthMode("sign-up");
                     }}
                   >
                     <span className="checkon-switch-text">Sign up</span>
@@ -277,15 +273,15 @@ export function AuthModal() {
                 </p>
               ) : (
                 <p>
-                  Already have an account?{' '}
+                  Already have an account?{" "}
                   <button
                     type="button"
                     className="checkon-switch-button"
                     onClick={() => {
-                      setError('');
-                      setInfoMsg('');
-                      setAuthError('');
-                      setAuthMode('sign-in');
+                      setError("");
+                      setInfoMsg("");
+                      setAuthError("");
+                      setAuthMode("sign-in");
                     }}
                   >
                     <span className="checkon-switch-text">Log in</span>
