@@ -1,13 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export const SESSION_COOKIE = "checkon_session";
+import type { AuthUser } from "./types";
 
-export type AuthUser = {
-  id: string;
-  email: string;
-  fullName: string;
-  provider: "password" | "google" | "demo";
-};
+export type { AuthUser } from "./types";
+
+export const SESSION_COOKIE = "checkon_session";
 
 export function encodeSession(user: AuthUser, secret: string) {
   const payload = Buffer.from(JSON.stringify(user), "utf8").toString("base64url");

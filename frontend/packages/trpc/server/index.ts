@@ -12,6 +12,6 @@ export const appRouter = router({
 
 export type AppRouter = typeof appRouter;
 export type { Context };
-export type { AuthUser } from "./auth/session";
+export type { AuthUser } from "./auth/types";
 export { decodeSession, encodeSession, SESSION_COOKIE } from "./auth/session";
 export { authStore } from "./auth/store";
