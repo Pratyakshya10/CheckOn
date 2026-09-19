@@ -1,5 +1,6 @@
 import type { ConditionRule } from "./condition";
 import type { ChangeFact } from "./change";
+import type { AnnotatedDiffBlock } from "../lib/diff/noise-patterns";
 
 export interface TrialCheckRequest {
   url: string;
@@ -42,4 +43,8 @@ export interface PublicWatchResponse {
     isCosmetic: boolean;
     changeFacts: ChangeFact[];
   }>;
+}
+
+export interface DiffResponse {
+  blocks: AnnotatedDiffBlock[];
 }
