@@ -54,6 +54,7 @@ new ApiStack(app, "CheckOnApi", {
   watchesTable: dataStack.watchesTable,
   subscriptionsTable: dataStack.subscriptionsTable,
   changesTable: dataStack.changesTable,
+  snapshotsBucket: dataStack.snapshotsBucket,
   bedrockModelArn: BEDROCK_MODEL_ARN,
   sessionSecret: SESSION_SECRET,
   clientOrigin: process.env.CLIENT_URL ?? "http://localhost:5173",
