@@ -19,7 +19,7 @@ const BEDROCK_MODEL_ARN = `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/a
 const dataStack = new DataStack(app, "CheckOnData", { env });
 
 const publicSiteStack = new PublicSiteStack(app, "CheckOnPublicSite", { env });
-const publicSiteUrl = `https://${publicSiteStack.distribution.distributionDomainName}`;
+const publicSiteUrl = publicSiteStack.siteUrl;
 
 // Placeholder until a real sending identity is verified in SES (see backend/README.md).
 // Not thrown on missing since there's nothing to send from yet - override at deploy time
