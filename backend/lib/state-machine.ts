@@ -36,9 +36,13 @@ export class ChangePipeline extends Construct {
     const noiseFilterFn = new NodejsFunction(this, "NoiseFilterFn", {
       ...nodeFunctionDefaults,
       entry: "src/handlers/pipeline/noise-filter.ts",
-      environment: { CHANGES_TABLE: props.changesTable.tableName },
+      environment: {
+        CHANGES_TABLE: props.changesTable.tableName,
+        SNAPSHOTS_BUCKET: props.snapshotsBucket.bucketName,
+      },
     });
     props.changesTable.grantWriteData(noiseFilterFn);
+    props.snapshotsBucket.grantWrite(noiseFilterFn);
 
     const summariseChangeFn = new NodejsFunction(this, "SummariseChangeFn", {
       ...bedrockFunctionDefaults,
