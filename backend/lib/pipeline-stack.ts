@@ -52,11 +52,16 @@ export class PipelineStack extends Stack {
       target: new LambdaInvoke(dispatcherFn),
     });
 
-    //  Fetch: SQS-triggered, reserved concurrency 
+    //  Fetch: SQS-triggered. No reservedConcurrentExecutions - this account's
+    // total Lambda concurrency is currently capped at 10 (new-account limit,
+    // same restriction behind the Bedrock/CloudFront blocks), and AWS always
+    // requires 10 unreserved account-wide, so reserving any amount for one
+    // function starves every other Lambda in the app. Re-add a reservation
+    // once the account's concurrency quota is raised past the ~20 functions
+    // this app runs.
     const fetchFn = new NodejsFunction(this, "FetchFn", {
       ...fetchFunctionDefaults,
       entry: "src/handlers/pipeline/fetch.ts",
-      reservedConcurrentExecutions: 10,
       environment: {
         CHANGE_PIPELINE_ARN: "", 
         SNAPSHOTS_BUCKET: props.snapshotsBucket.bucketName,
