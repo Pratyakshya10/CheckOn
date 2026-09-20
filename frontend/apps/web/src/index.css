@@ -32,9 +32,6 @@
 html {
   scroll-behavior: smooth;
   background-color: var(--bg-page);
-  /* Scale the whole app down slightly so pages fit within one viewport
-     without scrolling, on landing, auth, and dashboard alike. */
-  zoom: 0.85;
 }
 
 body {
@@ -53,6 +50,13 @@ body {
   place-items: center;
   color: #4b5563;
   font-weight: 700;
+}
+
+.page-wrapper {
+  /* Scale just the landing page (and its auth modal) down slightly so it
+     fits within one viewport without scrolling - dashboard is unaffected,
+     it has its own root wrapper. */
+  zoom: 0.85;
 }
 
 /* Master Container: Scaled up to 1420px for wide desktop displays */
