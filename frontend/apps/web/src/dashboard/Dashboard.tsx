@@ -1795,7 +1795,9 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
           <p className="settings-subtitle">Manage your account, notifications, and preferences.</p>
         </div>
 
-        {/* Profile Section */}
+        <div className="settings-layout-grid">
+          <div className="settings-left-col">
+            {/* Profile Section */}
         <div className="settings-section">
           <div className="settings-section-header">
             <div className="settings-section-icon">
@@ -2065,7 +2067,19 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
           <span>Member since Sep 2026</span>
         </div>
       </div>
-    );
+
+      <aside className="settings-right-col">
+        <div className="settings-doodle-wrap">
+          <img
+            src="/assets/settings-doodle.png"
+            alt="Your preferences. A calmer internet."
+            className="settings-side-doodle-img"
+          />
+        </div>
+      </aside>
+    </div>
+  </div>
+);
   };
 
   /* ====================================================================
