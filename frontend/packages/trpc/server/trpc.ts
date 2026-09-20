@@ -9,6 +9,8 @@ const t = initTRPC.context<Context>().create({
       ...shape,
       data: {
         ...shape.data,
+        // Never leak server file paths / internals to API callers.
+        stack: undefined,
         zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
       },
     };
