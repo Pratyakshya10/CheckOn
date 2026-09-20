@@ -1,6 +1,5 @@
-import { Stack, StackProps, RemovalPolicy } from "aws-cdk-lib";
+import { Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import * as s3 from "aws-cdk-lib/aws-s3";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
@@ -16,39 +15,23 @@ export interface FrontendHostingStackProps extends StackProps {
 /**
  * Hosts the frontend monorepo without CloudFront/Amplify - both are gated
  * behind the same new-account verification as Bedrock (see backend/README.md).
- * apps/web is a static S3 website (same pattern as PublicSiteStack); apps/api
- * needs a real always-on Node process, so it runs on a small EC2 instance.
  *
- * Two-pass deploy: the S3 website URL is deterministic (bucket naming), so
- * apps/api's CLIENT_URL can be baked into its user-data in this same deploy.
- * The reverse isn't true - apps/web's build needs to know apps/api's public
- * IP, and that IP doesn't exist until this stack deploys and allocates the
- * Elastic IP. So: deploy this stack first, then build apps/web with
- * VITE_API_URL=http://<the EIP output> and sync it to webBucket separately
- * (see backend/README.md's deploy steps) - not something CDK can sequence
- * in one shot without a custom resource, which isn't worth it here.
+ * apps/web and apps/api are served from the SAME EC2 instance/origin (Express
+ * serves the built web static files, see apps/api/src/index.ts). This isn't
+ * a scaling choice - it's required for session cookies to work at all without
+ * HTTPS. A cookie marked Secure is dropped by the browser over plain HTTP
+ * regardless of SameSite, and SameSite=None (needed for cross-origin) requires
+ * Secure. Same-origin sidesteps both: SameSite=Lax, Secure=false, works over
+ * HTTP. Splitting web (S3) and api (EC2) onto separate origins - the earlier
+ * design - only works once there's a real HTTPS domain in front of both.
  */
 export class FrontendHostingStack extends Stack {
-  public readonly webBucket: s3.Bucket;
-  public readonly webSiteUrl: string;
   public readonly apiPublicIp: string;
 
   constructor(scope: Construct, id: string, props: FrontendHostingStackProps) {
     super(scope, id, props);
 
-    // --- apps/web: static S3 website --------------------------------------
-    this.webBucket = new s3.Bucket(this, "WebBucket", {
-      bucketName: `checkon-web-${this.account}-${this.region}`,
-      websiteIndexDocument: "index.html",
-      websiteErrorDocument: "index.html", // SPA fallback - client-side routing, if any, still resolves
-      publicReadAccess: true,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ACLS,
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
-    });
-    this.webSiteUrl = this.webBucket.bucketWebsiteUrl;
-
-    // --- apps/api: EC2 (t3.micro, public subnet, Elastic IP) --------------
+    // --- apps/api + apps/web: EC2 (t3.micro, public subnet, Elastic IP) ---
     const vpc = ec2.Vpc.fromLookup(this, "DefaultVpc", { isDefault: true });
 
     const securityGroup = new ec2.SecurityGroup(this, "ApiSecurityGroup", {
@@ -73,10 +56,11 @@ export class FrontendHostingStack extends Stack {
       "mkdir -p /opt/checkon",
       "cd /opt/checkon && git clone --depth 1 https://github.com/Pratyakshya10/CheckOn.git .",
       "cd /opt/checkon/frontend && npm install",
+      "cd /opt/checkon/frontend && npm run build -w @checkon/web",
       `cat > /opt/checkon/frontend/.env <<'ENVEOF'
 NODE_ENV=production
 PORT=80
-CLIENT_URL=${this.webSiteUrl}
+CLIENT_URL=http://${eip.attrPublicIp}
 AWS_BACKEND_API_URL=${props.awsBackendApiUrl}
 SESSION_SECRET=${props.sessionSecret}
 USERS_TABLE=${props.usersTable.tableName}
@@ -127,8 +111,7 @@ UNITEOF`,
 
     this.apiPublicIp = eip.attrPublicIp;
 
-    new CfnOutput(this, "WebSiteUrl", { value: this.webSiteUrl });
     new CfnOutput(this, "ApiPublicIp", { value: this.apiPublicIp });
-    new CfnOutput(this, "ApiUrl", { value: `http://${this.apiPublicIp}` });
+    new CfnOutput(this, "SiteUrl", { value: `http://${this.apiPublicIp}` });
   }
 }
