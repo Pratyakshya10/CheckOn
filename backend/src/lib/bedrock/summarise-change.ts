@@ -43,6 +43,31 @@ export async function summariseChange(blocks: DiffBlock[], memory?: WatchMemory)
   try {
     return await invokeForJson(SYSTEM_PROMPT, userMessage, parseSummariseResult, SUMMARISE_TOOL_SCHEMA);
   } catch {
+    return heuristicSummarise(blocks);
+  }
+}
+
+/** No-model fallback: turns raw diff blocks into real facts instead of an empty result. */
+function heuristicSummarise(blocks: DiffBlock[]): SummariseResult {
+  const addedExcerpts = blocks
+    .filter((b) => b.added)
+    .map((b) => b.value.trim())
+    .filter(Boolean);
+  const removedCount = blocks.filter((b) => b.removed && b.value.trim()).length;
+
+  const facts: ChangeFact[] = addedExcerpts.slice(0, 10).map((excerpt) => ({
+    type: "text_added",
+    excerpt: excerpt.slice(0, 200),
+  }));
+
+  if (facts.length === 0) {
     return { facts: [], summary: "A page change was detected but could not be summarised safely." };
   }
+
+  const summary =
+    addedExcerpts.length === 1
+      ? `New content: "${addedExcerpts[0].slice(0, 120)}"`
+      : `${addedExcerpts.length} additions and ${removedCount} removals detected on this page.`;
+
+  return { facts, summary };
 }
