@@ -568,15 +568,35 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     { label: "Session token", count: 1, category: "Session token" },
   ];
 
-  const demoLogbookEntries: LogbookEntry[] = [
-    { id: "l1", type: "change", date: "17 Sep 2026", time: "09:40 IST", title: "Final Result: Civil Services Examination, 2026", description: "Added to What’s New. Marks of recommended candidates to follow within 15 days.", noisyBitsSkipped: 7, isLatest: true },
-    { id: "l2", type: "quiet-stretch", date: "", time: "", quietChecks: 1036, quietDays: 7 },
-    { id: "l3", type: "change", date: "10 Sep 2026", time: "17:20 IST", title: "Notice: Revised schedule for Personality Test", description: "Interview dates for Batch 3 moved.", noisyBitsSkipped: 3 },
-    { id: "l4", type: "quiet-stretch", date: "", time: "", quietChecks: 2218, quietDays: 15 },
-    { id: "l5", type: "change", date: "26 Aug 2026", time: "11:05 IST", title: "Written Result: Engineering Services (Main) Examination, 2026", description: "Result PDF linked from What’s New.", noisyBitsSkipped: 5 },
-    { id: "l6", type: "quiet-stretch", date: "", time: "", quietChecks: 4380, quietDays: 30 },
-    { id: "l7", type: "change", date: "27 Jul 2026", time: "10:12 IST", title: "Examination Calendar 2027 (Tentative)", description: "Calendar PDF published.", noisyBitsSkipped: 2 },
-  ];
+  const logbookEntriesByWatch: Record<string, LogbookEntry[]> = {
+    p1: [
+      { id: "l1", type: "change", date: "17 Sep 2026", time: "09:40 IST", title: "Final Result: Civil Services Examination, 2026", description: "Added to What’s New. Marks of recommended candidates to follow within 15 days.", noisyBitsSkipped: 7, isLatest: true },
+      { id: "l2", type: "quiet-stretch", date: "", time: "", quietChecks: 1036, quietDays: 7 },
+      { id: "l3", type: "change", date: "10 Sep 2026", time: "17:20 IST", title: "Notice: Revised schedule for Personality Test", description: "Interview dates for Batch 3 moved.", noisyBitsSkipped: 3 },
+      { id: "l4", type: "quiet-stretch", date: "", time: "", quietChecks: 2218, quietDays: 15 },
+      { id: "l5", type: "change", date: "26 Aug 2026", time: "11:05 IST", title: "Written Result: Engineering Services (Main) Examination, 2026", description: "Result PDF linked from What’s New.", noisyBitsSkipped: 5 },
+      { id: "l6", type: "quiet-stretch", date: "", time: "", quietChecks: 4380, quietDays: 30 },
+      { id: "l7", type: "change", date: "27 Jul 2026", time: "10:12 IST", title: "Examination Calendar 2027 (Tentative)", description: "Calendar PDF published.", noisyBitsSkipped: 2 },
+    ],
+    p2: [
+      { id: "v1", type: "change", date: "18 Sep 2026", time: "06:15 IST", title: "New slots released: B1/B2 interviews", description: "42 new appointment slots opened for Mumbai consulate, October batch.", noisyBitsSkipped: 9, isLatest: true },
+      { id: "v2", type: "quiet-stretch", date: "", time: "", quietChecks: 812, quietDays: 5 },
+      { id: "v3", type: "change", date: "11 Sep 2026", time: "14:05 IST", title: "Estimated wait time updated: 120 → 95 days", description: "Interview wait time dropped for Mumbai B1/B2 category.", noisyBitsSkipped: 4 },
+      { id: "v4", type: "quiet-stretch", date: "", time: "", quietChecks: 1590, quietDays: 11 },
+      { id: "v5", type: "change", date: "29 Aug 2026", time: "08:50 IST", title: "Emergency appointment category reopened", description: "Emergency visa appointment requests now being accepted again for Mumbai.", noisyBitsSkipped: 2 },
+      { id: "v6", type: "quiet-stretch", date: "", time: "", quietChecks: 3040, quietDays: 22 },
+      { id: "v7", type: "change", date: "24 Jul 2026", time: "12:30 IST", title: "Visa fee schedule updated for FY2027", description: "Revised MRV fee table published for all categories.", noisyBitsSkipped: 1 },
+    ],
+    p3: [
+      { id: "k1", type: "change", date: "16 Sep 2026", time: "18:00 IST", title: "Seat Allotment Round 2 results published", description: "Provisional allotment list for engineering and MBA/MCA streams is live.", noisyBitsSkipped: 6, isLatest: true },
+      { id: "k2", type: "quiet-stretch", date: "", time: "", quietChecks: 940, quietDays: 6 },
+      { id: "k3", type: "change", date: "08 Sep 2026", time: "10:20 IST", title: "Notice: Document verification schedule for Round 3", description: "Reporting centres and dates announced for the next counselling round.", noisyBitsSkipped: 3 },
+      { id: "k4", type: "quiet-stretch", date: "", time: "", quietChecks: 1780, quietDays: 13 },
+      { id: "k5", type: "change", date: "22 Aug 2026", time: "09:45 IST", title: "Provisional seat matrix released", description: "College-wise seat matrix for MBA/MCA published ahead of counselling.", noisyBitsSkipped: 4 },
+      { id: "k6", type: "quiet-stretch", date: "", time: "", quietChecks: 3510, quietDays: 25 },
+      { id: "k7", type: "change", date: "19 Jul 2026", time: "11:15 IST", title: "Counselling Schedule 2027 (Tentative)", description: "Draft schedule for next year's counselling rounds published.", noisyBitsSkipped: 2 },
+    ],
+  };
 
   /* Computed Ledger Groups */
   const changedWatches = watches.filter((w) => w.status === "change-detected");
@@ -1116,7 +1136,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     const payload = {
       watch: pub,
       generatedAt: new Date().toISOString(),
-      entries: demoLogbookEntries,
+      entries: logbookEntriesByWatch[pub.id] ?? logbookEntriesByWatch.p1,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1696,7 +1716,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                 <span className="logbook-section-hint">every change, plus every quiet stretch</span>
               </div>
               <div className="logbook-timeline">
-                {demoLogbookEntries.map((entry) => (
+                {(logbookEntriesByWatch[pub.id] ?? logbookEntriesByWatch.p1).map((entry) => (
                   <div key={entry.id} className={`logbook-entry ${entry.type}`}>
                     {entry.type === "change" ? (
                       <>
