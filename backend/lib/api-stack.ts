@@ -5,16 +5,20 @@ import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as sqs from "aws-cdk-lib/aws-sqs";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { CfnOutput } from "aws-cdk-lib";
 import { nodeFunctionDefaults, bedrockFunctionDefaults } from "./lambda-defaults";
+import type { AgentSafety } from "./agent-safety";
 
 export interface ApiStackProps extends StackProps {
   watchesTable: dynamodb.Table;
   subscriptionsTable: dynamodb.Table;
   changesTable: dynamodb.Table;
   snapshotsBucket: s3.IBucket;
+  fetchQueue: sqs.IQueue;
   bedrockModelArn: string;
+  agentSafety: AgentSafety;
   /** Same value as apps/api's SESSION_SECRET — verifies the checkon_session cookie Google sign-in issues. */
   sessionSecret: string;
   /** apps/web's origin, e.g. https://checkon.app or http://localhost:5173 — CORS with credentials can't use "*". */
@@ -43,7 +47,12 @@ export class ApiStack extends Stack {
       apiName: "checkon-api",
       corsPreflight: {
         allowOrigins: [props.clientOrigin],
-        allowMethods: [apigwv2.CorsHttpMethod.GET, apigwv2.CorsHttpMethod.POST, apigwv2.CorsHttpMethod.DELETE],
+        allowMethods: [
+          apigwv2.CorsHttpMethod.GET,
+          apigwv2.CorsHttpMethod.POST,
+          apigwv2.CorsHttpMethod.PATCH,
+          apigwv2.CorsHttpMethod.DELETE,
+        ],
         allowHeaders: ["content-type"],
         allowCredentials: true, // the session cookie must ride along on cross-origin requests
       },
@@ -54,8 +63,9 @@ export class ApiStack extends Stack {
       ...bedrockFunctionDefaults,
       timeout: Duration.seconds(15), // one live fetch + one Bedrock call, must feel instant on camera
       entry: "src/handlers/api/trial-check.ts",
+      environment: props.agentSafety.environment(),
     });
-    trialCheckFn.addToRolePolicy(bedrockPolicy(props.bedrockModelArn));
+    props.agentSafety.grantInvoke(trialCheckFn);
 
     const createWatchFn = new NodejsFunction(this, "CreateWatchFn", {
       ...nodeFunctionDefaults,
@@ -75,7 +85,7 @@ export class ApiStack extends Stack {
     });
     subscribeFn.addToRolePolicy(bedrockPolicy(props.bedrockModelArn));
     props.watchesTable.grantReadWriteData(subscribeFn);
-    props.subscriptionsTable.grantWriteData(subscribeFn);
+    props.subscriptionsTable.grantReadWriteData(subscribeFn);
 
     const getWatchFn = new NodejsFunction(this, "GetWatchFn", {
       ...nodeFunctionDefaults,
@@ -126,8 +136,35 @@ export class ApiStack extends Stack {
         SESSION_SECRET: props.sessionSecret,
       },
     });
-    props.subscriptionsTable.grantWriteData(unsubscribeFn);
+    props.subscriptionsTable.grantReadWriteData(unsubscribeFn);
     props.watchesTable.grantReadWriteData(unsubscribeFn);
+
+    const updateDashboardWatchFn = new NodejsFunction(this, "UpdateDashboardWatchFn", {
+      ...bedrockFunctionDefaults,
+      entry: "src/handlers/api/update-dashboard-watch.ts",
+      environment: {
+        SUBSCRIPTIONS_TABLE: props.subscriptionsTable.tableName,
+        WATCHES_TABLE: props.watchesTable.tableName,
+        SESSION_SECRET: props.sessionSecret,
+      },
+    });
+    updateDashboardWatchFn.addToRolePolicy(bedrockPolicy(props.bedrockModelArn));
+    props.subscriptionsTable.grantReadWriteData(updateDashboardWatchFn);
+    props.watchesTable.grantReadWriteData(updateDashboardWatchFn);
+
+    const checkNowFn = new NodejsFunction(this, "CheckNowFn", {
+      ...nodeFunctionDefaults,
+      entry: "src/handlers/api/check-now.ts",
+      environment: {
+        SUBSCRIPTIONS_TABLE: props.subscriptionsTable.tableName,
+        WATCHES_TABLE: props.watchesTable.tableName,
+        FETCH_QUEUE_URL: props.fetchQueue.queueUrl,
+        SESSION_SECRET: props.sessionSecret,
+      },
+    });
+    props.subscriptionsTable.grantReadData(checkNowFn);
+    props.watchesTable.grantWriteData(checkNowFn);
+    props.fetchQueue.grantSendMessages(checkNowFn);
 
     api.addRoutes({
       path: "/dashboard/watches",
@@ -138,6 +175,16 @@ export class ApiStack extends Stack {
       path: "/subscriptions/{watchId}",
       methods: [apigwv2.HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("UnsubscribeIntegration", unsubscribeFn),
+    });
+    api.addRoutes({
+      path: "/dashboard/watches/{watchId}",
+      methods: [apigwv2.HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration("UpdateDashboardWatchIntegration", updateDashboardWatchFn),
+    });
+    api.addRoutes({
+      path: "/dashboard/watches/{watchId}/check-now",
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new HttpLambdaIntegration("CheckNowIntegration", checkNowFn),
     });
 
     this.apiUrl = api.apiEndpoint;

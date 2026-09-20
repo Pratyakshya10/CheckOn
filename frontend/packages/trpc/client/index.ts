@@ -5,6 +5,6 @@ import type { AppRouter } from "../server";
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type RouterInputs = inferRouterInputs<AppRouter>;
 export type { AppRouter };
-export type { AuthUser } from "../server/auth/types";
+export type { AccountSettings, AuthUser } from "../server/auth/types";
 
 export * from "@trpc/client";

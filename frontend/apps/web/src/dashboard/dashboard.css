@@ -26,6 +26,16 @@
   --dash-status-red-text: #B91C1C;
 }
 
+@keyframes checkon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: checkon-spin 0.9s linear infinite;
+}
+
 /* Base Dashboard Layout */
 .checkon-dashboard-wrapper {
   display: flex;

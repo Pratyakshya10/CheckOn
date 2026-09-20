@@ -1,5 +1,5 @@
 import { summariseChange } from "../../lib/bedrock/summarise-change";
-import { putChange } from "../../lib/db/changes";
+import { listChangesForWatch, putChange } from "../../lib/db/changes";
 import type { DiffBlock } from "../../lib/diff/text-diff";
 
 interface Input {
@@ -16,7 +16,11 @@ interface Input {
 
 /** SummariseChange */
 export async function handler(input: Input) {
-  const { facts, summary } = await summariseChange(input.diffBlocks);
+  const prior = await listChangesForWatch(input.watchId, 5);
+  const { facts, summary } = await summariseChange(input.diffBlocks, {
+    recentSummaries: prior.map((change) => change.summary).filter(Boolean),
+    recentFacts: prior.flatMap((change) => change.changeFacts ?? []),
+  });
 
   await putChange({
     watchId: input.watchId,

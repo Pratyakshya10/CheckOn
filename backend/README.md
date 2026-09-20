@@ -4,7 +4,7 @@ AWS CDK app. See `../checkon-build-spec.md` for the architecture this implements
 
 ## Stack layout
 
-- `CheckOnData` — DynamoDB tables (Watches, Subscriptions, Changes, DigestQueue) + S3 buckets (snapshots, public site)
+- `CheckOnData` — DynamoDB tables (Users, Watches, Subscriptions, Changes, DigestQueue) + the snapshots S3 bucket
 - `CheckOnPublicSite` — CloudFront distribution in front of the public-site S3 bucket
 - `CheckOnPipeline` — EventBridge Scheduler ticks, SQS fetch queue, dispatcher/fetch Lambdas, the Step Functions change pipeline, digest tick, public-page regeneration
 - `CheckOnApi` — HTTP API, session-cookie auth (no Cognito — verifies the `checkon_session` cookie `frontend/apps/api`'s Google sign-in already issues), the handlers the frontend calls directly
@@ -15,7 +15,7 @@ AWS CDK app. See `../checkon-build-spec.md` for the architecture this implements
 - DynamoDB tables are PAY_PER_REQUEST — fan-out to subscribers is bursty and we don't want to hand-tune capacity mid-hackathon.
 - The change pipeline is an EXPRESS Step Functions workflow, not STANDARD — short executions, high frequency, no need for the execution-history/long-duration features STANDARD charges more for.
 - Bedrock calls use Haiku (`BEDROCK_MODEL_ID` env var to override), not Sonnet/Opus — both call sites are short structured-output tasks on the latency-sensitive path.
-- Fetch Lambda has `reservedConcurrentExecutions: 10` — a hard ceiling on how hard we ever hit a target site, independent of queue depth.
+- Fetch concurrency currently uses the account's unreserved pool because new AWS accounts require ten unreserved executions. Add a reserved ceiling after the account quota is raised.
 - Public page regeneration is decoupled via a DynamoDB Stream on the Changes table, so a slow S3 write never adds latency to notification delivery.
 
 ## Local dev

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect, type FormEvent } from "react";
 import {
   ArrowRight,
   LogOut,
@@ -14,13 +14,22 @@ import {
   Bell,
   ExternalLink,
 } from "lucide-react";
+import { backendApi, type TrialCheckResponse } from "./api/backend-client";
 import { useAuth } from "./auth/auth-context";
 import { AuthModal } from "./auth/auth-modal";
-import { Dashboard } from "./dashboard/Dashboard";
+
+const Dashboard = lazy(() =>
+  import("./dashboard/Dashboard").then((module) => ({ default: module.Dashboard })),
+);
 
 export default function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [viewLandingOverride, setViewLandingOverride] = useState(false);
+  const [trialUrl, setTrialUrl] = useState("");
+  const [trialCondition, setTrialCondition] = useState("");
+  const [trialLoading, setTrialLoading] = useState(false);
+  const [trialError, setTrialError] = useState("");
+  const [trialResult, setTrialResult] = useState<TrialCheckResponse | null>(null);
   const { user, openAuth, logout } = useAuth();
 
   useEffect(() => {
@@ -31,9 +40,33 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const handleTrialSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setTrialError("");
+    setTrialResult(null);
+    setTrialLoading(true);
+    try {
+      const url = trialUrl.startsWith("http") ? trialUrl : `https://${trialUrl}`;
+      setTrialResult(
+        await backendApi.trialCheck({
+          url,
+          conditionText: trialCondition.trim() || "any meaningful content change",
+        }),
+      );
+    } catch (error) {
+      setTrialError(error instanceof Error ? error.message : "The trial check could not run.");
+    } finally {
+      setTrialLoading(false);
+    }
+  };
+
   // When user signs in, immediately show the Dashboard
   if (user && !viewLandingOverride) {
-    return <Dashboard onSwitchToLanding={() => setViewLandingOverride(true)} />;
+    return (
+      <Suspense fallback={<div className="page-loading">Loading your dashboard…</div>}>
+        <Dashboard onSwitchToLanding={() => setViewLandingOverride(true)} />
+      </Suspense>
+    );
   }
 
   return (
@@ -121,9 +154,9 @@ export default function App() {
             </p>
 
             <div className="hero-actions">
-              <button className="btn-hero-primary" onClick={() => openAuth("sign-up")}>
+              <a className="btn-hero-primary" href="#try-it">
                 Start watching — it's free <ArrowRight size={16} />
-              </button>
+              </a>
               <a href="#example" className="btn-hero-secondary">
                 See example
               </a>
@@ -145,6 +178,54 @@ export default function App() {
               alt="Person working at desk with updates notification badges and coffee cup"
               className="hero-illustration-img"
             />
+          </div>
+        </section>
+
+        <section className="trial-section" id="try-it">
+          <div className="trial-card">
+            <div className="trial-copy">
+              <span className="section-eyebrow">TRY IT WITHOUT SIGNING UP</span>
+              <h2 className="trial-title">Check one public page now.</h2>
+              <p className="trial-description">
+                Paste a URL and describe the change you care about. We will fetch the live page and tell you what is there.
+              </p>
+            </div>
+
+            <form className="trial-form" onSubmit={handleTrialSubmit}>
+              <label className="trial-label" htmlFor="trial-url">Public webpage</label>
+              <input
+                id="trial-url"
+                className="trial-input"
+                type="text"
+                inputMode="url"
+                placeholder="example.com/notices"
+                value={trialUrl}
+                onChange={(event) => setTrialUrl(event.target.value)}
+                required
+              />
+              <label className="trial-label" htmlFor="trial-condition">Tell me if...</label>
+              <input
+                id="trial-condition"
+                className="trial-input"
+                type="text"
+                placeholder="the application deadline changes"
+                value={trialCondition}
+                onChange={(event) => setTrialCondition(event.target.value)}
+              />
+              <button className="trial-submit" type="submit" disabled={trialLoading}>
+                {trialLoading ? "Checking the live page..." : "Run free check"}
+                {!trialLoading && <ArrowRight size={16} />}
+              </button>
+            </form>
+
+            {trialError && <div className="trial-message error" role="alert">{trialError}</div>}
+            {trialResult && (
+              <div className={`trial-message ${trialResult.matched ? "matched" : "ready"}`} aria-live="polite">
+                <strong>{trialResult.matched ? "Your condition currently matches." : "Live check complete."}</strong>
+                <span>{trialResult.matchReason || trialResult.currentState}</span>
+                <button type="button" onClick={() => openAuth("sign-up")}>Save this watch</button>
+              </div>
+            )}
           </div>
         </section>
 

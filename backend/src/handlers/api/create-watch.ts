@@ -9,7 +9,12 @@ const DEFAULT_INTERVAL_MINUTES = 15;
 
 
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
-  const body = JSON.parse(event.body ?? "{}") as CreateWatchRequest;
+  let body: CreateWatchRequest;
+  try {
+    body = JSON.parse(event.body ?? "{}") as CreateWatchRequest;
+  } catch {
+    return { statusCode: 400, body: JSON.stringify({ error: "body must be valid JSON" }) };
+  }
 
   if (!body.url || !isHttpUrl(body.url)) {
     return { statusCode: 400, body: JSON.stringify({ error: "url must be a valid http(s) URL" }) };
@@ -23,7 +28,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     return { statusCode: 200, body: JSON.stringify(existing) };
   }
 
-  const title = new URL(normalizedUrl).hostname;
+  const title = body.title?.trim() || new URL(body.url).hostname;
   const slug = `${slugify(title)}-${watchId.slice(2, 8)}`;
   const checkIntervalMinutes = Math.max(body.checkIntervalMinutes ?? DEFAULT_INTERVAL_MINUTES, DEFAULT_INTERVAL_MINUTES);
 

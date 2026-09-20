@@ -2,6 +2,11 @@ import { Stack, StackProps, RemovalPolicy, Duration } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import { AgentSafety } from "./agent-safety";
+
+export interface DataStackProps extends StackProps {
+  bedrockModelArn: string;
+}
 
 /**
  * Storage layer
@@ -11,10 +16,12 @@ export class DataStack extends Stack {
   public readonly subscriptionsTable: dynamodb.Table;
   public readonly changesTable: dynamodb.Table;
   public readonly digestQueueTable: dynamodb.Table;
+  public readonly usersTable: dynamodb.Table;
+  public readonly agentSafety: AgentSafety;
 
   public readonly snapshotsBucket: s3.Bucket;
 
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
 
     // Watches
@@ -82,7 +89,22 @@ export class DataStack extends Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
+    // Identity, credentials, TOTP enrollment, and account-level preferences.
+    // The Express/tRPC auth service accesses this table using its AWS credentials.
+    this.usersTable = new dynamodb.Table(this, "UsersTable", {
+      tableName: "checkon-users",
+      partitionKey: { name: "email", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
+      removalPolicy: RemovalPolicy.RETAIN,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
+    });
+
     // Snapshots: before/after HTML
+    this.agentSafety = new AgentSafety(this, "AgentSafety", {
+      modelArn: props.bedrockModelArn,
+    });
+
     this.snapshotsBucket = new s3.Bucket(this, "SnapshotsBucket", {
       bucketName: `checkon-snapshots-${this.account}-${this.region}`,
       lifecycleRules: [

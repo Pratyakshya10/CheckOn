@@ -23,7 +23,7 @@ type AuthContextValue = {
   setAuthError: (message: string) => void;
   openAuth: (mode?: AuthMode) => void;
   closeAuth: () => void;
-  login: (email: string, password: string, keepSignedIn?: boolean) => Promise<AuthUser>;
+  login: (email: string, password: string, keepSignedIn?: boolean, totpCode?: string) => Promise<AuthUser>;
   signup: (
     fullName: string,
     email: string,
@@ -31,7 +31,7 @@ type AuthContextValue = {
     confirmPassword: string,
     keepSignedIn?: boolean,
   ) => Promise<AuthUser>;
-  updateUserProfile: (updates: { fullName?: string; email?: string }) => void;
+  updateUserProfile: (updates: { fullName: string; profileRole?: string }) => Promise<AuthUser>;
   logout: () => Promise<void>;
 };
 
@@ -99,8 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthError("");
   }, []);
 
-  const login = useCallback(async (email: string, password: string, keepSignedIn = true) => {
-    const nextUser = await trpc.auth.signIn.mutate({ email, password, keepSignedIn });
+  const login = useCallback(async (email: string, password: string, keepSignedIn = true, totpCode?: string) => {
+    const nextUser = await trpc.auth.signIn.mutate({ email, password, keepSignedIn, totpCode });
     setUser(nextUser);
     setIsAuthOpen(false);
     setAuthError("");
@@ -130,8 +130,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const updateUserProfile = useCallback((updates: { fullName?: string; email?: string }) => {
-    setUser((prev) => (prev ? { ...prev, ...updates } : null));
+  const updateUserProfile = useCallback(async (updates: { fullName: string; profileRole?: string }) => {
+    const nextUser = await trpc.account.updateProfile.mutate(updates);
+    setUser(nextUser);
+    return nextUser;
   }, []);
 
   const logout = useCallback(async () => {

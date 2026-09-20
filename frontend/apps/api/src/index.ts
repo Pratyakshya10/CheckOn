@@ -5,6 +5,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "@checkon/trpc/server";
 
 import { env } from "./env";
+import { backendProxyRouter } from "./routes/backend-proxy";
 import { googleAuthRouter } from "./routes/google-auth";
 import { clearSession, readSession, setSession } from "./services/session";
 
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use("/auth", googleAuthRouter);
+app.use("/backend", backendProxyRouter);
 
 app.use(
   "/trpc",

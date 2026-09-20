@@ -15,6 +15,9 @@ function mapAuthError(error: unknown): never {
   if (code === "UNAUTHORIZED") {
     throw new TRPCError({ code: "UNAUTHORIZED", message });
   }
+  if (code === "TOTP_REQUIRED") {
+    throw new TRPCError({ code: "PRECONDITION_FAILED", message });
+  }
   throw new TRPCError({ code: "BAD_REQUEST", message });
 }
 

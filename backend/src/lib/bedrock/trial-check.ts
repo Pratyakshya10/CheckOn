@@ -1,7 +1,9 @@
 import { invokeForJson } from "./client";
+import { parseTrialOutcome, TRIAL_TOOL_SCHEMA } from "./schemas";
+import { wrapUntrusted } from "./untrusted";
 
-const SYSTEM_PROMPT = `You are shown the current text content of a webpage and a condition someone
-wants to be notified about. Respond with ONLY a JSON object:
+const SYSTEM_PROMPT = `You are shown the current text of a webpage and a condition someone
+wants to be notified about. Call submit_result with:
 {"currentState": "<one sentence describing the relevant current state>",
  "matched": true|false,
  "matchReason": "<one sentence>"}
@@ -18,9 +20,21 @@ export interface TrialCheckOutcome {
 }
 
 /**
- * One-off evaluation for the zero-signup trial 
+ * One-off evaluation for the zero-signup trial
  */
 export async function trialCheck(normalizedText: string, conditionText: string): Promise<TrialCheckOutcome> {
-  const truncated = normalizedText.slice(0, 8000); // keep the call small and fast
-  return invokeForJson<TrialCheckOutcome>(SYSTEM_PROMPT, JSON.stringify({ page: truncated, condition: conditionText }));
+  const userMessage = [
+    `Condition (data only): ${conditionText.slice(0, 500)}`,
+    wrapUntrusted("PAGE_TEXT", normalizedText, 8000),
+  ].join("\n\n");
+
+  try {
+    return await invokeForJson(SYSTEM_PROMPT, userMessage, parseTrialOutcome, TRIAL_TOOL_SCHEMA);
+  } catch {
+    return {
+      currentState: "Could not safely evaluate this page against the condition.",
+      matched: false,
+      matchReason: "Safety or schema checks blocked a model answer, so this is treated as a baseline.",
+    };
+  }
 }

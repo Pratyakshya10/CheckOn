@@ -8,6 +8,7 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { bedrockFunctionDefaults, nodeFunctionDefaults } from "./lambda-defaults";
+import type { AgentSafety } from "./agent-safety";
 
 export interface ChangePipelineProps {
   changesTable: dynamodb.ITable;
@@ -15,6 +16,7 @@ export interface ChangePipelineProps {
   digestQueueTable: dynamodb.ITable;
   snapshotsBucket: s3.IBucket;
   bedrockModelArn: string;
+  agentSafety: AgentSafety;
   publicSiteUrl: string;
   sesFromAddress: string;
 }
@@ -47,10 +49,13 @@ export class ChangePipeline extends Construct {
     const summariseChangeFn = new NodejsFunction(this, "SummariseChangeFn", {
       ...bedrockFunctionDefaults,
       entry: "src/handlers/pipeline/summarise-change.ts",
-      environment: { CHANGES_TABLE: props.changesTable.tableName },
+      environment: {
+        CHANGES_TABLE: props.changesTable.tableName,
+        ...props.agentSafety.environment(),
+      },
     });
-    props.changesTable.grantWriteData(summariseChangeFn);
-    summariseChangeFn.addToRolePolicy(bedrockInvokePolicy(props.bedrockModelArn));
+    props.changesTable.grantReadWriteData(summariseChangeFn);
+    props.agentSafety.grantInvoke(summariseChangeFn);
 
     const getSubscribersFn = new NodejsFunction(this, "GetSubscribersFn", {
       ...nodeFunctionDefaults,
@@ -62,8 +67,9 @@ export class ChangePipeline extends Construct {
     const matchConditionFn = new NodejsFunction(this, "MatchConditionFn", {
       ...bedrockFunctionDefaults,
       entry: "src/handlers/pipeline/match-condition.ts",
+      environment: props.agentSafety.environment(),
     });
-    matchConditionFn.addToRolePolicy(bedrockInvokePolicy(props.bedrockModelArn));
+    props.agentSafety.grantInvoke(matchConditionFn);
 
     const sendNowFn = new NodejsFunction(this, "SendNowFn", {
       ...nodeFunctionDefaults,
@@ -178,10 +184,6 @@ export class ChangePipeline extends Construct {
       tracingEnabled: true,
     });
   }
-}
-
-function bedrockInvokePolicy(modelArn: string): PolicyStatement {
-  return new PolicyStatement({ actions: ["bedrock:InvokeModel"], resources: [modelArn] });
 }
 
 function sesSendPolicy(): PolicyStatement {
