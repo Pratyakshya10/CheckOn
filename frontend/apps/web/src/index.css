@@ -1176,10 +1176,35 @@ body {
 /* ==========================================================================
    Responsive Rules
    ========================================================================== */
+
+/* --- Tablet (≤ 1024px) -------------------------------------------------- */
 @media (max-width: 1024px) {
+  .site-container {
+    padding: 0 28px;
+  }
+
+  /* Navbar */
+  .nav-links {
+    gap: 24px;
+  }
+
+  .nav-link {
+    font-size: 15px;
+  }
+
+  .nav-actions {
+    gap: 14px;
+  }
+
+  .btn-get-started {
+    padding: 12px 22px;
+    font-size: 15px;
+  }
+
+  /* Hero */
   .hero-section {
     grid-template-columns: 1fr;
-    gap: 56px;
+    gap: 40px;
     text-align: center;
   }
 
@@ -1187,16 +1212,60 @@ body {
     align-items: center;
   }
 
+  .hero-desc {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .hero-visual-wrap {
     justify-content: center;
   }
 
+  .hero-illustration-img {
+    max-width: 520px;
+  }
+
+  .hero-social-proof {
+    justify-content: center;
+  }
+
+  /* Trial */
   .trial-card {
     grid-template-columns: 1fr;
   }
 
+  .trial-copy {
+    text-align: center;
+  }
+
+  .trial-description {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Use Cases */
+  .use-cases-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .use-cases-desc-col {
+    padding: 0;
+  }
+
+  .use-cases-doodle-col {
+    margin-top: 0;
+  }
+
   .use-cases-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* How It Works */
+  .how-it-works-card {
+    padding: 40px 36px;
   }
 
   .how-it-works-header {
@@ -1214,38 +1283,52 @@ body {
     width: 140px;
   }
 
-  .diff-showcase-section {
+  /* Diff Showcase */
+  .diff-card-container {
     grid-template-columns: 1fr;
     text-align: center;
-    gap: 56px;
+    gap: 36px;
+    padding: 40px 36px;
   }
 
-  .badge-example-img {
-    align-self: center;
+  .diff-content {
+    align-items: center;
   }
 
-  .no-more-refreshing-doodle {
-    align-self: center;
+  .diff-subtitle {
+    margin-left: auto;
+    margin-right: auto;
   }
 
-  .diff-preview-card-wrap {
+  .no-more-refreshing-wrap {
     justify-content: center;
   }
 
-  .from-this-doodle {
-    right: -10px;
-    top: -30px;
-    width: 100px;
+  .diff-visual-area {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .from-this-wrap {
+    display: none;
+  }
+
+  /* Features */
+  .features-section {
+    padding: 60px 0 80px;
   }
 
   .features-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+    margin-top: 44px;
   }
 
+  /* CTA */
   .cta-banner-card {
     grid-template-columns: 1fr;
-    gap: 40px;
-    padding: 44px 28px;
+    gap: 32px;
+    padding: 40px 28px;
     text-align: center;
   }
 
@@ -1254,7 +1337,7 @@ body {
   }
 
   .cta-left-composite-img {
-    max-width: 320px;
+    max-width: 300px;
   }
 
   .cta-banner-right {
@@ -1262,32 +1345,177 @@ body {
   }
 
   .cta-illustration-img {
-    max-width: 300px;
+    max-width: 280px;
   }
 }
 
+/* --- Mobile (≤ 768px) --------------------------------------------------- */
 @media (max-width: 768px) {
+  .page-wrapper {
+    zoom: 1;
+  }
+
+  .site-container {
+    padding: 0 20px;
+  }
+
+  /* Navbar */
+  .navbar {
+    padding: 18px 0;
+  }
+
+  .navbar.scrolled {
+    padding: 14px 0;
+  }
+
   .nav-links {
     display: none;
   }
 
+  .brand-logo-img {
+    height: 38px;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .btn-signin {
+    font-size: 14px;
+    padding: 8px 6px;
+  }
+
+  .btn-get-started {
+    padding: 10px 16px;
+    font-size: 14px;
+    gap: 6px;
+  }
+
+  /* Hero */
+  .hero-section {
+    padding: 28px 0 48px;
+    gap: 32px;
+  }
+
+  .hero-tagline {
+    font-size: 11px;
+    margin-bottom: 16px;
+  }
+
+  .hero-heading-img {
+    max-width: 100%;
+  }
+
+  .hero-desc {
+    font-size: 17px;
+    margin-bottom: 24px;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .btn-hero-primary,
+  .btn-hero-secondary {
+    width: 100%;
+    justify-content: center;
+    padding: 15px 24px;
+    font-size: 16px;
+  }
+
+  .hero-doodle-avatars {
+    height: 40px;
+    max-width: 170px;
+  }
+
+  .hero-proof-text {
+    font-size: 13.5px;
+  }
+
+  .hero-illustration-img {
+    max-width: 100%;
+  }
+
+  /* Trial */
+  .trial-section {
+    padding: 8px 0 36px;
+  }
+
   .trial-card {
-    padding: 28px 22px;
-    gap: 28px;
+    padding: 24px 18px;
+    gap: 24px;
+    border-radius: 20px;
+  }
+
+  .trial-title {
+    font-size: 26px;
   }
 
   .trial-message {
     align-items: flex-start;
     flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Use Cases */
+  .use-cases-section {
+    padding: 28px 0 36px;
+  }
+
+  .use-cases-heading-img {
+    height: 72px;
+    max-width: 280px;
+  }
+
+  .use-cases-doodle-img {
+    height: 72px;
+    max-width: 200px;
   }
 
   .use-cases-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .use-case-card {
+    padding: 20px 16px 18px;
+    border-radius: 14px;
+  }
+
+  .use-case-icon {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 12px;
+  }
+
+  .use-case-title {
+    font-size: 14px;
+  }
+
+  .use-case-desc {
+    font-size: 12.5px;
+  }
+
+  /* How It Works */
+  .how-it-works-section {
+    padding: 12px 0 24px;
+  }
+
+  .how-it-works-card {
+    padding: 32px 22px;
+    border-radius: 22px;
+  }
+
+  .how-it-works-title {
+    font-size: 30px;
   }
 
   .steps-row {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 12px;
+    max-width: 320px;
   }
 
   .step-separator-arrow {
@@ -1295,17 +1523,238 @@ body {
     margin: 0;
   }
 
+  .step-title {
+    font-size: 17px;
+  }
+
+  .step-desc {
+    font-size: 14px;
+  }
+
+  /* Diff Showcase — CRITICAL: prevent horizontal overflow */
+  .diff-showcase-section {
+    padding: 12px 0 36px;
+  }
+
+  .diff-card-container {
+    padding: 28px 16px;
+    border-radius: 22px;
+    overflow: hidden;
+  }
+
+  .diff-headline {
+    font-size: 30px;
+  }
+
+  .diff-visual-area {
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  .browser-diff-card {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .card-before,
+  .card-after {
+    width: 100%;
+    flex-shrink: 1;
+  }
+
+  .diff-flow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .no-more-refreshing-doodle {
+    height: 80px;
+  }
+
+  /* Features */
+  .features-section {
+    padding: 48px 0 64px;
+  }
+
+  .section-title {
+    font-size: 28px;
+  }
+
   .features-grid {
     grid-template-columns: 1fr;
+    gap: 24px;
+    margin-top: 36px;
   }
 
-  .from-this-doodle {
-    display: none;
+  .feature-heading {
+    font-size: 17px;
   }
 
+  .feature-text {
+    font-size: 15px;
+  }
+
+  /* CTA Banner */
+  .cta-banner-section {
+    padding: 16px 0 64px;
+  }
+
+  .cta-banner-card {
+    padding: 32px 20px;
+    border-radius: 24px;
+    gap: 24px;
+  }
+
+  .cta-left-composite-img {
+    max-width: 240px;
+  }
+
+  .btn-cta-submit {
+    padding: 14px 28px;
+    font-size: 15px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cta-illustration-img {
+    max-width: 220px;
+  }
+
+  /* Footer */
   .footer-wrap {
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
     text-align: center;
+    padding: 36px 0 56px;
+  }
+
+  .footer-nav {
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .footer-link {
+    font-size: 14px;
+  }
+
+  .footer-tagline {
+    font-size: 13px;
+  }
+}
+
+/* --- Small Phone (≤ 480px) ---------------------------------------------- */
+@media (max-width: 480px) {
+  .site-container {
+    padding: 0 16px;
+  }
+
+  .brand-logo-img {
+    height: 32px;
+  }
+
+  .btn-signin {
+    font-size: 13px;
+    padding: 6px 4px;
+  }
+
+  .btn-get-started {
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  .hero-desc {
+    font-size: 15px;
+  }
+
+  .btn-hero-primary,
+  .btn-hero-secondary {
+    font-size: 15px;
+    padding: 14px 20px;
+  }
+
+  .hero-social-proof {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .hero-doodle-avatars {
+    height: 36px;
+  }
+
+  .trial-card {
+    padding: 20px 14px;
+  }
+
+  .trial-title {
+    font-size: 22px;
+  }
+
+  .trial-input {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .use-cases-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .use-case-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .use-case-icon {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .use-case-title {
+    margin-bottom: 2px;
+  }
+
+  .how-it-works-card {
+    padding: 24px 16px;
+  }
+
+  .how-it-works-title {
+    font-size: 24px;
+  }
+
+  .step-icon-box {
+    width: 54px;
+    height: 54px;
+  }
+
+  .diff-card-container {
+    padding: 22px 12px;
+  }
+
+  .diff-headline {
+    font-size: 24px;
+  }
+
+  .diff-subtitle {
+    font-size: 15px;
+  }
+
+  .browser-body {
+    padding: 12px 12px 16px;
+  }
+
+  .cta-banner-card {
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+
+  .cta-center-text {
+    font-size: 14px;
+  }
+
+  .footer-nav {
+    gap: 16px;
   }
 }

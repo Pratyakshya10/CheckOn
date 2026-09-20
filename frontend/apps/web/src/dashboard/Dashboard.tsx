@@ -35,6 +35,7 @@ import {
   Edit3,
   CheckCircle,
   Sparkles,
+  Menu,
 } from "lucide-react";
 import {
   BackendApiError,
@@ -223,6 +224,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
 
   /* Navigation & View State */
   const [activeTab, setActiveTab] = useState<string>("home");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
@@ -2470,23 +2472,43 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
      ==================================================================== */
   return (
     <div className="checkon-dashboard-wrapper">
-      <aside className="checkon-sidebar">
+      {isMobileSidebarOpen && (
+        <div
+          className="sidebar-mobile-backdrop"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+      <aside className={`checkon-sidebar ${isMobileSidebarOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-top">
-          <a
-            href="#"
-            className="sidebar-brand"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab("home");
-            }}
-          >
-            <img src="/assets/logo.png" alt="CheckOn" className="sidebar-logo-img" />
-          </a>
+          <div className="sidebar-brand-row">
+            <a
+              href="#"
+              className="sidebar-brand"
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveTab("home");
+                setIsMobileSidebarOpen(false);
+              }}
+            >
+              <img src="/assets/logo.png" alt="CheckOn" className="sidebar-logo-img" />
+            </a>
+            <button
+              type="button"
+              className="sidebar-mobile-close-btn"
+              onClick={() => setIsMobileSidebarOpen(false)}
+              aria-label="Close navigation"
+            >
+              <X size={18} />
+            </button>
+          </div>
           <nav className="sidebar-nav">
             <button
               type="button"
               className={`sidebar-nav-item ${activeTab === "home" || activeTab === "diff" || activeTab === "logbook" ? "active" : ""}`}
-              onClick={() => setActiveTab("home")}
+              onClick={() => {
+                setActiveTab("home");
+                setIsMobileSidebarOpen(false);
+              }}
             >
               <Home size={18} />
               <span>My watches</span>
@@ -2495,7 +2517,10 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
             <button
               type="button"
               className={`sidebar-nav-item ${activeTab === "following" ? "active" : ""}`}
-              onClick={() => setActiveTab("following")}
+              onClick={() => {
+                setActiveTab("following");
+                setIsMobileSidebarOpen(false);
+              }}
             >
               <Users size={18} />
               <span>Following</span>
@@ -2506,7 +2531,10 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
             <button
               type="button"
               className={`sidebar-nav-item ${activeTab === "digest" ? "active" : ""}`}
-              onClick={() => setActiveTab("digest")}
+              onClick={() => {
+                setActiveTab("digest");
+                setIsMobileSidebarOpen(false);
+              }}
             >
               <Mail size={18} />
               <span>Weekly digest</span>
@@ -2514,7 +2542,10 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
             <button
               type="button"
               className={`sidebar-nav-item ${activeTab === "settings" ? "active" : ""}`}
-              onClick={() => setActiveTab("settings")}
+              onClick={() => {
+                setActiveTab("settings");
+                setIsMobileSidebarOpen(false);
+              }}
             >
               <Settings size={18} />
               <span>Settings</span>
@@ -2567,17 +2598,27 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
 
       <div className="checkon-main-area">
         <header className="dashboard-topbar">
-          <div className="topbar-search-wrap">
-            <Search size={16} className="topbar-search-icon" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="topbar-search-input"
-              placeholder="Search watches, URLs, or topics..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <span className="topbar-search-shortcut">/</span>
+          <div className="topbar-left-group">
+            <button
+              type="button"
+              className="dashboard-mobile-menu-btn"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <Menu size={22} />
+            </button>
+            <div className="topbar-search-wrap">
+              <Search size={16} className="topbar-search-icon" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="topbar-search-input"
+                placeholder="Search watches, URLs, or topics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <span className="topbar-search-shortcut">/</span>
+            </div>
           </div>
           <div className="topbar-actions">
             <div style={{ position: "relative" }}>

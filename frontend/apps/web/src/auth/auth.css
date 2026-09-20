@@ -481,3 +481,38 @@
     right: -26px;
   }
 }
+
+@media (max-width: 480px) {
+  .checkon-auth-overlay {
+    padding: 16px;
+  }
+
+  .checkon-auth-dialog {
+    max-width: 100%;
+    border-radius: 20px;
+  }
+
+  .checkon-auth-right-col {
+    padding: 28px 18px 24px;
+    border-radius: 20px;
+  }
+
+  .checkon-auth-heading {
+    font-size: 22px;
+  }
+
+  .checkon-auth-corner-burst {
+    display: none;
+  }
+
+  .checkon-input-field {
+    height: 46px;
+    font-size: 14px;
+  }
+
+  .checkon-auth-submit-btn {
+    height: 46px;
+    font-size: 14px;
+  }
+}
+

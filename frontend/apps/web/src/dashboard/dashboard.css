@@ -3862,3 +3862,332 @@
   line-height: 1.45;
   margin-bottom: 16px;
 }
+
+/* ==========================================================================
+   Mobile Navigation & Responsive Styles for Dashboard
+   ========================================================================== */
+
+/* Defaults for mobile drawer helpers (hidden on desktop) */
+.sidebar-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.sidebar-mobile-close-btn {
+  display: none;
+  background: #FFFFFF;
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-mobile-close-btn:hover {
+  background: #F3F4F6;
+  color: var(--dash-text-primary);
+}
+
+.sidebar-mobile-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 23, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 95;
+  animation: checkon-fade-in 0.2s ease-out;
+}
+
+.topbar-left-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 480px;
+}
+
+.dashboard-mobile-menu-btn {
+  display: none;
+  background: #FFFFFF;
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.dashboard-mobile-menu-btn:hover {
+  background: #F3F4F6;
+}
+
+/* --- Tablet (≤ 1024px) --------------------------------------------------- */
+@media (max-width: 1024px) {
+  .checkon-sidebar {
+    width: 220px;
+    padding: 20px 14px 16px;
+  }
+
+  .dashboard-topbar {
+    padding: 0 24px;
+  }
+
+  .dashboard-content-scroll {
+    padding: 20px 24px 44px;
+    gap: 20px;
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr) 1fr;
+    gap: 12px;
+  }
+
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-right-col {
+    display: none;
+  }
+}
+
+/* --- Mobile (≤ 768px) --------------------------------------------------- */
+@media (max-width: 768px) {
+  .checkon-dashboard-wrapper {
+    flex-direction: column;
+  }
+
+  /* Slide-out Mobile Sidebar */
+  .checkon-sidebar {
+    position: fixed;
+    top: 0;
+    left: -290px;
+    bottom: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 100;
+    background: #FFFFFF;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+  }
+
+  .checkon-sidebar.mobile-open {
+    transform: translateX(290px);
+  }
+
+  .sidebar-mobile-close-btn {
+    display: flex;
+  }
+
+  .sidebar-mobile-backdrop {
+    display: block;
+  }
+
+  .dashboard-mobile-menu-btn {
+    display: flex;
+  }
+
+  /* Topbar */
+  .dashboard-topbar {
+    padding: 0 16px;
+    height: 60px;
+  }
+
+  .topbar-search-wrap {
+    width: 100%;
+  }
+
+  .topbar-search-shortcut {
+    display: none;
+  }
+
+  .topbar-actions {
+    gap: 10px;
+  }
+
+  /* Scrollable Content */
+  .dashboard-content-scroll {
+    padding: 16px 16px 40px;
+    gap: 16px;
+  }
+
+  /* Hero Row */
+  .dashboard-hero-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .hero-greeting-text {
+    font-size: 22px;
+  }
+
+  .hero-subtext {
+    font-size: 13.5px;
+  }
+
+  .hero-right-cta {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .btn-add-watch-primary {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+  }
+
+  .track-anything-doodle-img {
+    display: none;
+  }
+
+  /* Stats Grid */
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-kpi-card {
+    padding: 12px 14px;
+  }
+
+  .stat-number {
+    font-size: 20px;
+  }
+
+  /* Filter Bar & Header */
+  .watches-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .watches-filter-bar {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Watch Cards */
+  .watch-item-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .watch-item-left {
+    width: 100%;
+  }
+
+  .watch-url {
+    max-width: 100%;
+  }
+
+  .watch-item-right {
+    width: 100%;
+    justify-content: space-between;
+    border-top: 1px solid #F3F4F6;
+    padding-top: 10px;
+    gap: 8px;
+  }
+
+  .watch-time {
+    min-width: auto;
+    text-align: left;
+    font-size: 11.5px;
+  }
+
+  /* Modals */
+  .add-watch-modal-dialog,
+  .upgrade-modal-dialog,
+  .quick-setup-modal-dialog,
+  .diff-view-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    padding: 20px 16px !important;
+    border-radius: 18px !important;
+    margin: 16px auto;
+  }
+
+  /* Diff Viewer */
+  .diff-modal-body {
+    padding: 12px !important;
+  }
+
+  .diff-blocks-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Settings Page */
+  .settings-container {
+    padding: 0;
+  }
+
+  .settings-pref-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* Following Grid */
+  .following-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Digest Preview */
+  .digest-email-wrapper {
+    padding: 16px 12px;
+  }
+}
+
+/* --- Small Phone (≤ 480px) ---------------------------------------------- */
+@media (max-width: 480px) {
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-display-name {
+    display: none;
+  }
+
+  .topbar-search-input {
+    font-size: 12.5px;
+    height: 38px;
+  }
+
+  .hero-greeting-text {
+    font-size: 20px;
+  }
+
+  .stat-kpi-card {
+    padding: 12px;
+  }
+
+  .watch-name {
+    font-size: 13.5px;
+  }
+
+  .watch-item-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .add-another-watch-row {
+    padding: 10px;
+  }
+}
+
