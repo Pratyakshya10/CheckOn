@@ -9,11 +9,14 @@ import {
 import { env } from "../env";
 
 function cookieOptions(persist: boolean): CookieOptions {
-  const isProduction = env.NODE_ENV === "production";
+  // SameSite=None requires Secure, which requires HTTPS - only turn it on when
+  // CLIENT_URL is actually served over HTTPS. Same-origin HTTP deploys need
+  // SameSite=Lax/Secure=false or the browser silently drops the cookie.
+  const isHttps = env.CLIENT_URL.startsWith("https://");
   return {
     httpOnly: true,
-    sameSite: isProduction ? "none" : "lax",
-    secure: isProduction,
+    sameSite: isHttps ? "none" : "lax",
+    secure: isHttps,
     path: "/",
     maxAge: persist ? 30 * 24 * 60 * 60 * 1000 : undefined,
   };

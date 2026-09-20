@@ -32,7 +32,7 @@ googleAuthRouter.get("/google", (_req, res) => {
   res.cookie("checkon_oauth_state", state, {
     httpOnly: true,
     sameSite: "lax",
-    secure: env.NODE_ENV === "production",
+    secure: env.CLIENT_URL.startsWith("https://"),
     path: "/",
     maxAge: 10 * 60 * 1000,
   });
