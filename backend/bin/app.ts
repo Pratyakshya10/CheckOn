@@ -25,7 +25,7 @@ const publicSiteUrl = publicSiteStack.siteUrl;
 // Placeholder until a real sending identity is verified in SES (see backend/README.md).
 // Not thrown on missing since there's nothing to send from yet - override at deploy time
 // once you've picked and verified a real address.
-const SES_FROM_ADDRESS = process.env.SES_FROM_ADDRESS ?? "pratyakshya.121681@gmail.com";
+const SES_FROM_ADDRESS = process.env.SES_FROM_ADDRESS ?? "pratyakshya.mishra43@gmail.com";
 
 const pipelineStack = new PipelineStack(app, "CheckOnPipeline", {
   env,
