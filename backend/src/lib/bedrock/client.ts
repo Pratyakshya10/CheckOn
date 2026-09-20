@@ -4,6 +4,7 @@ import {
   type ContentBlock,
   type Message,
 } from "@aws-sdk/client-bedrock-runtime";
+import type { DocumentType } from "@smithy/types";
 import { SAFETY_SYSTEM_PREFIX } from "./untrusted";
 import { SchemaError } from "./schemas";
 
@@ -24,7 +25,7 @@ export async function invokeForJson<T>(
   systemPrompt: string,
   userMessage: string,
   parse: (value: unknown) => T,
-  toolSchema: Record<string, unknown>,
+  toolSchema: DocumentType,
   maxTurns = 3,
 ): Promise<T> {
   let lastError: unknown;
@@ -48,7 +49,7 @@ async function runToolLoop<T>(
   systemPrompt: string,
   userMessage: string,
   parse: (value: unknown) => T,
-  toolSchema: Record<string, unknown>,
+  toolSchema: DocumentType,
   maxTurns: number,
 ): Promise<T> {
   const messages: Message[] = [{ role: "user", content: [{ text: userMessage }] }];
