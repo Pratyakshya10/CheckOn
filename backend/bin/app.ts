@@ -5,6 +5,7 @@ import { DataStack } from "../lib/data-stack";
 import { PipelineStack } from "../lib/pipeline-stack";
 import { ApiStack } from "../lib/api-stack";
 import { PublicSiteStack } from "../lib/public-site-stack";
+import { FrontendHostingStack } from "../lib/frontend-hosting-stack";
 
 const app = new cdk.App();
 
@@ -50,7 +51,7 @@ if (!SESSION_SECRET) {
   );
 }
 
-new ApiStack(app, "CheckOnApi", {
+const apiStack = new ApiStack(app, "CheckOnApi", {
   env,
   watchesTable: dataStack.watchesTable,
   subscriptionsTable: dataStack.subscriptionsTable,
@@ -61,4 +62,22 @@ new ApiStack(app, "CheckOnApi", {
   agentSafety: dataStack.agentSafety,
   sessionSecret: SESSION_SECRET,
   clientOrigin: process.env.CLIENT_URL ?? "http://localhost:5173",
+});
+
+// Encrypts TOTP (2FA) secrets at rest in the users table - same
+// "must be real, no weak default" treatment as SESSION_SECRET.
+const TOTP_ENCRYPTION_KEY = process.env.TOTP_ENCRYPTION_KEY;
+if (!TOTP_ENCRYPTION_KEY) {
+  throw new Error(
+    "TOTP_ENCRYPTION_KEY is not set. Use the same value as apps/api's .env TOTP_ENCRYPTION_KEY, e.g.:\n" +
+      "  TOTP_ENCRYPTION_KEY=<value> npx cdk deploy CheckOnFrontendHosting"
+  );
+}
+
+new FrontendHostingStack(app, "CheckOnFrontendHosting", {
+  env,
+  usersTable: dataStack.usersTable,
+  sessionSecret: SESSION_SECRET,
+  totpEncryptionKey: TOTP_ENCRYPTION_KEY,
+  awsBackendApiUrl: apiStack.apiUrl,
 });
