@@ -21,6 +21,7 @@ export interface PipelineStackProps extends StackProps {
   publicSiteBucket: s3.Bucket;
   bedrockModelArn: string;
   publicSiteUrl: string;
+  sesFromAddress: string;
 }
 
 export class PipelineStack extends Stack {
@@ -51,11 +52,16 @@ export class PipelineStack extends Stack {
       target: new LambdaInvoke(dispatcherFn),
     });
 
-    //  Fetch: SQS-triggered, reserved concurrency 
+    //  Fetch: SQS-triggered. No reservedConcurrentExecutions - this account's
+    // total Lambda concurrency is currently capped at 10 (new-account limit,
+    // same restriction behind the Bedrock/CloudFront blocks), and AWS always
+    // requires 10 unreserved account-wide, so reserving any amount for one
+    // function starves every other Lambda in the app. Re-add a reservation
+    // once the account's concurrency quota is raised past the ~20 functions
+    // this app runs.
     const fetchFn = new NodejsFunction(this, "FetchFn", {
       ...fetchFunctionDefaults,
       entry: "src/handlers/pipeline/fetch.ts",
-      reservedConcurrentExecutions: 10,
       environment: {
         CHANGE_PIPELINE_ARN: "", 
         SNAPSHOTS_BUCKET: props.snapshotsBucket.bucketName,
@@ -79,6 +85,7 @@ export class PipelineStack extends Stack {
       snapshotsBucket: props.snapshotsBucket,
       bedrockModelArn: props.bedrockModelArn,
       publicSiteUrl: props.publicSiteUrl,
+      sesFromAddress: props.sesFromAddress,
     });
     fetchFn.addEnvironment("CHANGE_PIPELINE_ARN", changePipeline.stateMachine.stateMachineArn);
     changePipeline.stateMachine.grantStartExecution(fetchFn);
@@ -108,7 +115,7 @@ export class PipelineStack extends Stack {
     const sendDigestFn = new NodejsFunction(this, "SendDigestFn", {
       ...nodeFunctionDefaults,
       entry: "src/handlers/digest/send-digest.ts",
-      environment: { PUBLIC_SITE_URL: props.publicSiteUrl },
+      environment: { PUBLIC_SITE_URL: props.publicSiteUrl, SES_FROM_ADDRESS: props.sesFromAddress },
     });
     sendDigestFn.addToRolePolicy(new iam.PolicyStatement({ actions: ["ses:SendEmail"], resources: ["*"] }));
 

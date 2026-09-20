@@ -16,6 +16,7 @@ export interface ChangePipelineProps {
   snapshotsBucket: s3.IBucket;
   bedrockModelArn: string;
   publicSiteUrl: string;
+  sesFromAddress: string;
 }
 
 /**
@@ -35,9 +36,13 @@ export class ChangePipeline extends Construct {
     const noiseFilterFn = new NodejsFunction(this, "NoiseFilterFn", {
       ...nodeFunctionDefaults,
       entry: "src/handlers/pipeline/noise-filter.ts",
-      environment: { CHANGES_TABLE: props.changesTable.tableName },
+      environment: {
+        CHANGES_TABLE: props.changesTable.tableName,
+        SNAPSHOTS_BUCKET: props.snapshotsBucket.bucketName,
+      },
     });
     props.changesTable.grantWriteData(noiseFilterFn);
+    props.snapshotsBucket.grantWrite(noiseFilterFn);
 
     const summariseChangeFn = new NodejsFunction(this, "SummariseChangeFn", {
       ...bedrockFunctionDefaults,
@@ -63,7 +68,7 @@ export class ChangePipeline extends Construct {
     const sendNowFn = new NodejsFunction(this, "SendNowFn", {
       ...nodeFunctionDefaults,
       entry: "src/handlers/pipeline/send-now.ts",
-      environment: { PUBLIC_SITE_URL: props.publicSiteUrl },
+      environment: { PUBLIC_SITE_URL: props.publicSiteUrl, SES_FROM_ADDRESS: props.sesFromAddress },
     });
     sendNowFn.addToRolePolicy(sesSendPolicy());
 

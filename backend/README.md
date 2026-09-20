@@ -7,7 +7,7 @@ AWS CDK app. See `../checkon-build-spec.md` for the architecture this implements
 - `CheckOnData` — DynamoDB tables (Watches, Subscriptions, Changes, DigestQueue) + S3 buckets (snapshots, public site)
 - `CheckOnPublicSite` — CloudFront distribution in front of the public-site S3 bucket
 - `CheckOnPipeline` — EventBridge Scheduler ticks, SQS fetch queue, dispatcher/fetch Lambdas, the Step Functions change pipeline, digest tick, public-page regeneration
-- `CheckOnApi` — HTTP API + Cognito, the handlers the frontend calls directly
+- `CheckOnApi` — HTTP API, session-cookie auth (no Cognito — verifies the `checkon_session` cookie `frontend/apps/api`'s Google sign-in already issues), the handlers the frontend calls directly
 
 ## Performance/cost decisions baked into this scaffold
 

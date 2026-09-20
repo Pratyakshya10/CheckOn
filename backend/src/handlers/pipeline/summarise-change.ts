@@ -10,6 +10,7 @@ interface Input {
   beforeSnapshotKey: string;
   afterSnapshotKey: string;
   diffBlocks: DiffBlock[];
+  diffKey: string;
   [key: string]: unknown;
 }
 
@@ -23,7 +24,7 @@ export async function handler(input: Input) {
     changeFacts: facts,
     beforeSnapshotKey: input.beforeSnapshotKey,
     afterSnapshotKey: input.afterSnapshotKey,
-    diffKey: "",
+    diffKey: input.diffKey,
     isCosmetic: false,
     summary,
   });

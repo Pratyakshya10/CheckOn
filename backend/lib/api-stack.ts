@@ -4,6 +4,7 @@ import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { CfnOutput } from "aws-cdk-lib";
 import { nodeFunctionDefaults, bedrockFunctionDefaults } from "./lambda-defaults";
@@ -12,6 +13,7 @@ export interface ApiStackProps extends StackProps {
   watchesTable: dynamodb.Table;
   subscriptionsTable: dynamodb.Table;
   changesTable: dynamodb.Table;
+  snapshotsBucket: s3.IBucket;
   bedrockModelArn: string;
   /** Same value as apps/api's SESSION_SECRET — verifies the checkon_session cookie Google sign-in issues. */
   sessionSecret: string;
@@ -83,10 +85,22 @@ export class ApiStack extends Stack {
     props.watchesTable.grantReadData(getWatchFn);
     props.changesTable.grantReadData(getWatchFn);
 
+    const getDiffFn = new NodejsFunction(this, "GetDiffFn", {
+      ...nodeFunctionDefaults,
+      entry: "src/handlers/api/get-diff.ts",
+      environment: { SNAPSHOTS_BUCKET: props.snapshotsBucket.bucketName },
+    });
+    props.snapshotsBucket.grantRead(getDiffFn);
+
     api.addRoutes({ path: "/trial-check", methods: [apigwv2.HttpMethod.POST], integration: new HttpLambdaIntegration("TrialCheckIntegration", trialCheckFn) });
     api.addRoutes({ path: "/watches", methods: [apigwv2.HttpMethod.POST], integration: new HttpLambdaIntegration("CreateWatchIntegration", createWatchFn) });
     api.addRoutes({ path: "/subscribe", methods: [apigwv2.HttpMethod.POST], integration: new HttpLambdaIntegration("SubscribeIntegration", subscribeFn) });
     api.addRoutes({ path: "/watches/{watchId}", methods: [apigwv2.HttpMethod.GET], integration: new HttpLambdaIntegration("GetWatchIntegration", getWatchFn) });
+    api.addRoutes({
+      path: "/watches/{watchId}/changes/{detectedAt}/diff",
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration("GetDiffIntegration", getDiffFn),
+    });
 
     // --- Routes that require a signed-in session (checkon_session cookie) --
     const listWatchesFn = new NodejsFunction(this, "ListWatchesFn", {
