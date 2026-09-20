@@ -12,10 +12,14 @@ Call submit_result with exactly one of these shapes:
 Use "any_meaningful" for blank or "notify me about anything".
 Use "fuzzy" only when none of the structured shapes fit.`;
 
+const ANY_MEANINGFUL_SENTINEL = "any meaningful content change";
+
 /** Runs once at subscribe time  */
 export async function parseCondition(conditionText: string): Promise<ConditionRule> {
   const trimmed = conditionText.trim();
-  if (!trimmed) return { type: "any_meaningful" };
+  if (!trimmed || trimmed.toLowerCase() === ANY_MEANINGFUL_SENTINEL) {
+    return { type: "any_meaningful" };
+  }
 
   try {
     return await invokeForJson(SYSTEM_PROMPT, wrapCondition(trimmed), parseConditionRule, CONDITION_TOOL_SCHEMA);
