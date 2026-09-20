@@ -35,6 +35,7 @@ const pipelineStack = new PipelineStack(app, "CheckOnPipeline", {
   snapshotsBucket: dataStack.snapshotsBucket,
   publicSiteBucket: publicSiteStack.bucket,
   bedrockModelArn: BEDROCK_MODEL_ARN,
+  agentSafety: dataStack.agentSafety,
   publicSiteUrl,
   sesFromAddress: SES_FROM_ADDRESS,
 });
@@ -57,6 +58,7 @@ new ApiStack(app, "CheckOnApi", {
   snapshotsBucket: dataStack.snapshotsBucket,
   fetchQueue: pipelineStack.fetchQueue,
   bedrockModelArn: BEDROCK_MODEL_ARN,
+  agentSafety: dataStack.agentSafety,
   sessionSecret: SESSION_SECRET,
   clientOrigin: process.env.CLIENT_URL ?? "http://localhost:5173",
 });
