@@ -10,10 +10,18 @@ import { parseCondition } from "../../lib/bedrock/parse-condition";
  * Zero-signup trial
  */
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
-  const body = JSON.parse(event.body ?? "{}") as TrialCheckRequest;
+  let body: TrialCheckRequest;
+  try {
+    body = JSON.parse(event.body ?? "{}") as TrialCheckRequest;
+  } catch {
+    return { statusCode: 400, body: JSON.stringify({ error: "body must be valid JSON" }) };
+  }
 
   if (!body.url || !isHttpUrl(body.url)) {
     return { statusCode: 400, body: JSON.stringify({ error: "url must be a valid http(s) URL" }) };
+  }
+  if (typeof body.conditionText !== "string") {
+    return { statusCode: 400, body: JSON.stringify({ error: "conditionText must be a string" }) };
   }
 
   const allowed = await isAllowedByRobots(body.url);

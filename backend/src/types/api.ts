@@ -18,6 +18,7 @@ export interface TrialCheckResponse {
 
 export interface CreateWatchRequest {
   url: string;
+  title?: string;
   checkIntervalMinutes?: number;
 }
 
@@ -25,6 +26,7 @@ export interface SubscribeRequest {
   watchId: string;
   conditionText: string;
   deliveryMode: "instant" | "digest";
+  email?: string;
   language?: string;
   digestHour?: number;
   timezone?: string;

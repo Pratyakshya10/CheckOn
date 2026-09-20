@@ -16,7 +16,7 @@ const env = {
 //no cross region support for bedrock yet, so we have to deploy the stacks in the same region as the bedrock model 
 const BEDROCK_MODEL_ARN = `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0`;
 
-const dataStack = new DataStack(app, "CheckOnData", { env });
+const dataStack = new DataStack(app, "CheckOnData", { env, bedrockModelArn: BEDROCK_MODEL_ARN });
 
 const publicSiteStack = new PublicSiteStack(app, "CheckOnPublicSite", { env });
 const publicSiteUrl = publicSiteStack.siteUrl;
@@ -26,7 +26,7 @@ const publicSiteUrl = publicSiteStack.siteUrl;
 // once you've picked and verified a real address.
 const SES_FROM_ADDRESS = process.env.SES_FROM_ADDRESS ?? "alerts@checkon.app";
 
-new PipelineStack(app, "CheckOnPipeline", {
+const pipelineStack = new PipelineStack(app, "CheckOnPipeline", {
   env,
   watchesTable: dataStack.watchesTable,
   subscriptionsTable: dataStack.subscriptionsTable,
@@ -55,6 +55,7 @@ new ApiStack(app, "CheckOnApi", {
   subscriptionsTable: dataStack.subscriptionsTable,
   changesTable: dataStack.changesTable,
   snapshotsBucket: dataStack.snapshotsBucket,
+  fetchQueue: pipelineStack.fetchQueue,
   bedrockModelArn: BEDROCK_MODEL_ARN,
   sessionSecret: SESSION_SECRET,
   clientOrigin: process.env.CLIENT_URL ?? "http://localhost:5173",

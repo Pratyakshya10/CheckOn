@@ -4,6 +4,7 @@ export const signInInputSchema = z.object({
   email: z.string().trim().email("Invalid email"),
   password: z.string().min(1, "Password is required"),
   keepSignedIn: z.boolean().default(true),
+  totpCode: z.string().trim().regex(/^\d{6}$/, "Enter a 6-digit code").optional(),
 });
 
 export const signUpInputSchema = z

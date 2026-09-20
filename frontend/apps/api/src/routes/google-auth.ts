@@ -101,7 +101,7 @@ googleAuthRouter.get("/google/callback", async (req, res) => {
       throw new Error("missing_email");
     }
 
-    const user = authStore.upsertGoogle({
+    const user = await authStore.upsertGoogle({
       email: profile.email,
       fullName: profile.name ?? profile.email.split("@")[0] ?? "Google user",
     });
@@ -112,14 +112,18 @@ googleAuthRouter.get("/google/callback", async (req, res) => {
   }
 });
 
-googleAuthRouter.get("/demo", (_req, res) => {
+googleAuthRouter.get("/demo", async (_req, res) => {
   if (env.DEMO_LOGIN_ENABLED !== "true") {
     res.redirect(clientErrorRedirect("Demo login is disabled."));
     return;
   }
 
-  setSession(res, authStore.demoUser(), true);
-  res.redirect(clientSuccessRedirect());
+  try {
+    setSession(res, await authStore.demoUser(), true);
+    res.redirect(clientSuccessRedirect());
+  } catch {
+    res.redirect(clientErrorRedirect("Demo sign-in failed."));
+  }
 });
 
 export { googleAuthRouter };

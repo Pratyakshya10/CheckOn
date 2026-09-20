@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Home,
   Bell,
@@ -36,7 +36,16 @@ import {
   CheckCircle,
   Sparkles,
 } from "lucide-react";
+import {
+  BackendApiError,
+  backendApi,
+  type AnnotatedDiffBlock,
+  type DashboardWatchRow,
+} from "../api/backend-client";
+import type { AccountSettings } from "@checkon/trpc/client";
 import { useAuth } from "../auth/auth-context";
+import { isDemoDataEnabled } from "../lib/demo-config";
+import { trpc } from "../trpc/client";
 import "./dashboard.css";
 
 /* ====================================================================
@@ -54,6 +63,8 @@ interface WatchItem {
   checkEvery: string;
   checksLast24h: number[];
   noisyBitsSkipped: number;
+  latestDetectedAt?: string;
+  latestSummary?: string;
 }
 
 interface ChangeItem {
@@ -133,9 +144,82 @@ function generateSparkline(changed: boolean): number[] {
   return bars;
 }
 
+function formatLastChecked(value: string | null) {
+  if (!value) return "Waiting for first check";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
+function mapDashboardRow(row: DashboardWatchRow): WatchItem {
+  const hasMeaningfulChange = Boolean(row.latestChange && !row.latestChange.isCosmetic);
+  return {
+    id: row.watch.watchId,
+    name: row.watch.title,
+    url: row.watch.url,
+    status:
+      row.watch.status === "failing" || row.watch.status === "blocked"
+        ? "needs-look"
+        : hasMeaningfulChange
+          ? "change-detected"
+          : "no-change",
+    lastChecked: formatLastChecked(row.watch.lastCheckedAt),
+    category: "other",
+    tellMeIf: row.subscription.conditionText || "any meaningful content change",
+    checkEvery: `${row.watch.checkIntervalMinutes}m`,
+    checksLast24h: generateSparkline(hasMeaningfulChange),
+    noisyBitsSkipped: row.latestChange?.isCosmetic ? 1 : 0,
+    latestDetectedAt: row.latestChange?.detectedAt,
+    latestSummary: row.latestChange?.summary,
+  };
+}
+
+function mapDashboardChange(row: DashboardWatchRow): ChangeItem | null {
+  if (!row.latestChange) return null;
+  return {
+    id: `${row.watch.watchId}_${row.latestChange.detectedAt}`,
+    watchId: row.watch.watchId,
+    title: row.watch.title,
+    note: row.latestChange.summary,
+    summary: row.latestChange.summary,
+    time: formatLastChecked(row.latestChange.detectedAt),
+    dotColor: row.latestChange.isCosmetic ? "amber" : "red",
+    noisyBitsSkipped: row.latestChange.isCosmetic ? 1 : 0,
+  };
+}
+
+function diffBlocksToLines(blocks: AnnotatedDiffBlock[]): DiffLine[] {
+  return blocks
+    .flatMap((block) => block.value.split(/\r?\n/).map((content) => ({ block, content })))
+    .filter(({ content }) => content.trim().length > 0)
+    .map(({ block, content }, index) => ({
+      lineNum: index + 1,
+      content,
+      type: block.isNoise ? "noise" : block.added ? "added" : block.removed ? "removed" : "unchanged",
+      annotation: block.noiseReason || (block.added ? "meaningful addition" : undefined),
+      noiseCategory: block.noiseReason,
+    }));
+}
+
+function summarizeSkippedItems(lines: DiffLine[]): SkippedItem[] {
+  const counts = new Map<string, number>();
+  for (const line of lines) {
+    if (line.type !== "noise") continue;
+    const category = line.noiseCategory || "Other noise";
+    counts.set(category, (counts.get(category) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([category, count]) => ({ label: category, category, count }));
+}
+
+function frequencyToMinutes(value: string) {
+  if (value.endsWith("h")) return Number.parseInt(value, 10) * 60;
+  return Number.parseInt(value, 10) || 15;
+}
+
 export function Dashboard({ onSwitchToLanding }: DashboardProps) {
   const { user, logout, updateUserProfile } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const demoDataEnabled = isDemoDataEnabled();
 
   /* Navigation & View State */
   const [activeTab, setActiveTab] = useState<string>("home");
@@ -146,6 +230,12 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
   const [ledgerFilter, setLedgerFilter] = useState<string>("everything");
   const [activeDiffWatchId, setActiveDiffWatchId] = useState<string | null>(null);
   const [activeLogbookWatch, setActiveLogbookWatch] = useState<PublicWatch | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(!demoDataEnabled);
+  const [dashboardError, setDashboardError] = useState("");
+  const [liveDiffLines, setLiveDiffLines] = useState<DiffLine[] | null>(null);
+  const [liveSkippedItems, setLiveSkippedItems] = useState<SkippedItem[] | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
+  const [diffReason, setDiffReason] = useState("");
 
   /* Toast Notification State */
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -207,7 +297,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
   /* Form Inputs for Edit Profile */
   const [profileNameInput, setProfileNameInput] = useState(user?.fullName || "");
   const [profileEmailInput, setProfileEmailInput] = useState(user?.email || "");
-  const [profileRoleInput, setProfileRoleInput] = useState("Product Analyst");
+  const [profileRoleInput, setProfileRoleInput] = useState(user?.profileRole || "");
 
   /* Form Inputs for Change Password */
   const [currPassword, setCurrPassword] = useState("");
@@ -216,14 +306,10 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
   const [passwordError, setPasswordError] = useState("");
 
   /* 2FA State */
-  const [is2FAEnabled, setIs2FAEnabled] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem("checkon_2fa_enabled") === "true";
-    } catch {
-      return false;
-    }
-  });
+  const [is2FAEnabled, setIs2FAEnabled] = useState<boolean>(user?.totpEnabled ?? false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorSecret, setTwoFactorSecret] = useState("");
+  const [twoFactorUri, setTwoFactorUri] = useState("");
 
   /* Delete Account Confirmation Text */
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -247,29 +333,39 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
   }, [connectedDevices]);
 
   /* Notification Settings State */
-  const [notifEmailAlerts, setNotifEmailAlerts] = useState<boolean>(() => {
-    try { return localStorage.getItem("checkon_notif_email") !== "false"; } catch { return true; }
-  });
-  const [notifWeeklyDigest, setNotifWeeklyDigest] = useState<boolean>(() => {
-    try { return localStorage.getItem("checkon_notif_digest") !== "false"; } catch { return true; }
-  });
-  const [notifPush, setNotifPush] = useState<boolean>(() => {
-    try { return localStorage.getItem("checkon_notif_push") === "true"; } catch { return false; }
-  });
-  const [notifNoiseFiltering, setNotifNoiseFiltering] = useState<boolean>(() => {
-    try { return localStorage.getItem("checkon_notif_noise") !== "false"; } catch { return true; }
-  });
+  const [notifEmailAlerts, setNotifEmailAlerts] = useState(true);
+  const [notifWeeklyDigest, setNotifWeeklyDigest] = useState(true);
+  const [notifPush, setNotifPush] = useState(false);
+  const [notifNoiseFiltering, setNotifNoiseFiltering] = useState(true);
 
   /* Weekly Digest Settings */
-  const [digestFrequency, setDigestFrequency] = useState<string>(() => {
-    try { return localStorage.getItem("checkon_digest_freq") || "weekly"; } catch { return "weekly"; }
-  });
-  const [digestDeliveryTime, setDigestDeliveryTime] = useState<string>(() => {
-    try { return localStorage.getItem("checkon_digest_time") || "08:00"; } catch { return "08:00"; }
-  });
-  const [includeQuietWatches, setIncludeQuietWatches] = useState<boolean>(() => {
-    try { return localStorage.getItem("checkon_digest_quiet") !== "false"; } catch { return true; }
-  });
+  const [digestFrequency, setDigestFrequency] = useState<string>("weekly");
+  const [digestDeliveryTime, setDigestDeliveryTime] = useState<string>("08:00");
+  const [includeQuietWatches, setIncludeQuietWatches] = useState(true);
+
+  useEffect(() => {
+    setIs2FAEnabled(user?.totpEnabled ?? false);
+    if (!user) return;
+    void trpc.account.settings.query().then((settings) => {
+      setNotifEmailAlerts(settings.emailAlerts);
+      setNotifWeeklyDigest(settings.weeklyDigest);
+      setNotifPush(settings.pushNotifications);
+      setNotifNoiseFiltering(settings.noiseFiltering);
+      setDigestFrequency(settings.digestFrequency);
+      setDigestDeliveryTime(settings.digestTime);
+      setIncludeQuietWatches(settings.includeQuietWatches);
+    }).catch(() => {
+      showToast("Could not load account settings.", "error");
+    });
+  }, [user?.id, user?.totpEnabled]);
+
+  const persistAccountSettings = async (updates: Partial<AccountSettings>) => {
+    try {
+      await trpc.account.updateSettings.mutate(updates);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not save settings.", "error");
+    }
+  };
 
   /* Logbook Subscribe State */
   const [logbookEmail, setLogbookEmail] = useState("");
@@ -296,6 +392,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
 
   /* Active Watches */
   const [watches, setWatches] = useState<WatchItem[]>(() => {
+    if (!demoDataEnabled) return [];
     try {
       const saved = localStorage.getItem("checkon_active_watches");
       if (saved) {
@@ -314,10 +411,11 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     return [];
   });
   useEffect(() => {
+    if (!demoDataEnabled) return;
     try {
       localStorage.setItem("checkon_active_watches", JSON.stringify(watches));
     } catch { /* ignore */ }
-  }, [watches]);
+  }, [demoDataEnabled, watches]);
 
   /* Followed Public Watches */
   const [followedIds, setFollowedIds] = useState<Record<string, boolean>>(() => {
@@ -353,6 +451,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
 
   /* Recent Changes */
   const [recentChanges, setRecentChanges] = useState<ChangeItem[]>(() => {
+    if (!demoDataEnabled) return [];
     try {
       const saved = localStorage.getItem("checkon_active_changes");
       if (saved) {
@@ -370,10 +469,30 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     return [];
   });
   useEffect(() => {
+    if (!demoDataEnabled) return;
     try {
       localStorage.setItem("checkon_active_changes", JSON.stringify(recentChanges));
     } catch { /* ignore */ }
-  }, [recentChanges]);
+  }, [demoDataEnabled, recentChanges]);
+
+  const refreshBackendWatches = useCallback(async () => {
+    if (demoDataEnabled) return;
+    setDashboardLoading(true);
+    setDashboardError("");
+    try {
+      const rows = await backendApi.listDashboardWatches();
+      setWatches(rows.map(mapDashboardRow));
+      setRecentChanges(rows.map(mapDashboardChange).filter((change): change is ChangeItem => change !== null));
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not load watches.");
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, [demoDataEnabled]);
+
+  useEffect(() => {
+    void refreshBackendWatches();
+  }, [refreshBackendWatches]);
 
   /* Form states for adding watch */
   const [newWatchName, setNewWatchName] = useState("");
@@ -481,11 +600,35 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
      HANDLERS
      ==================================================================== */
 
-  const handleToggleFollow = (id: string) => {
+  const handleToggleFollow = async (id: string) => {
     const isCurrentlyFollowed = !!followedIds[id];
-    setFollowedIds((prev) => ({ ...prev, [id]: !isCurrentlyFollowed }));
     const pub = publicWatches.find((p) => p.id === id);
     if (!pub) return;
+
+    if (!demoDataEnabled) {
+      try {
+        const watch = await backendApi.createWatch({ url: pub.url, title: pub.title, checkIntervalMinutes: 15 });
+        if (isCurrentlyFollowed) {
+          await backendApi.unsubscribe(watch.watchId);
+          showToast(`Unfollowed "${pub.title}".`, "info");
+        } else {
+          await backendApi.subscribe({
+            watchId: watch.watchId,
+            conditionText: "any meaningful content change",
+            deliveryMode: "instant",
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          });
+          showToast(`Now following "${pub.title}"!`, "success");
+        }
+        setFollowedIds((prev) => ({ ...prev, [id]: !isCurrentlyFollowed }));
+        await refreshBackendWatches();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Could not update this subscription.", "error");
+      }
+      return;
+    }
+
+    setFollowedIds((prev) => ({ ...prev, [id]: !isCurrentlyFollowed }));
     if (!isCurrentlyFollowed) {
       const newWatch: WatchItem = {
         id: "w_pub_" + pub.id,
@@ -508,7 +651,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     }
   };
 
-  const handleAddWatchSubmit = (e: React.FormEvent) => {
+  const handleAddWatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWatchUrl.trim()) return;
 
@@ -528,14 +671,42 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
         cleanName = "New Web Watch";
       }
     }
+    const normalizedUrl = newWatchUrl.startsWith("http") ? newWatchUrl : `https://${newWatchUrl}`;
+    const conditionText = newWatchTellMeIf.trim() || "any meaningful content change";
+
+    if (!demoDataEnabled) {
+      try {
+        const createdWatch = await backendApi.createWatch({
+          url: normalizedUrl,
+          title: cleanName,
+          checkIntervalMinutes: frequencyToMinutes(newWatchFrequency),
+        });
+        await backendApi.subscribe({
+          watchId: createdWatch.watchId,
+          conditionText,
+          deliveryMode: "instant",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        });
+        setNewWatchName("");
+        setNewWatchUrl("");
+        setNewWatchTellMeIf("");
+        setIsAddModalOpen(false);
+        await refreshBackendWatches();
+        showToast(`Started monitoring "${cleanName}"!`, "success");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Could not create this watch.", "error");
+      }
+      return;
+    }
+
     const created: WatchItem = {
       id: "w_" + Date.now(),
       name: cleanName,
-      url: newWatchUrl.startsWith("http") ? newWatchUrl : `https://${newWatchUrl}`,
+      url: normalizedUrl,
       status: "no-change",
       lastChecked: "Just added — checking now",
       category: "other",
-      tellMeIf: newWatchTellMeIf.trim() || "any meaningful content change",
+      tellMeIf: conditionText,
       checkEvery: newWatchFrequency,
       checksLast24h: generateSparkline(false),
       noisyBitsSkipped: 0,
@@ -568,16 +739,47 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     setActiveMenuWatchId(null);
   };
 
-  const handleEditWatchSubmit = (e: React.FormEvent) => {
+  const handleEditWatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingWatch) return;
+    if (!demoDataEnabled) {
+      const current = watches.find((watch) => watch.id === editingWatch.id);
+      if (current && current.url !== editingWatch.url) {
+        showToast("A watch URL cannot be changed. Create a new watch for the new URL.", "error");
+        return;
+      }
+      try {
+        await backendApi.updateDashboardWatch(editingWatch.id, {
+          title: editingWatch.name.trim(),
+          conditionText: editingWatch.tellMeIf,
+          checkIntervalMinutes: Math.max(15, frequencyToMinutes(editingWatch.checkEvery)),
+        });
+        setIsEditWatchModalOpen(false);
+        await refreshBackendWatches();
+        showToast(`Updated watch settings for "${editingWatch.name}".`, "success");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Could not update this watch.", "error");
+      }
+      return;
+    }
     setWatches((prev) => prev.map((w) => (w.id === editingWatch.id ? editingWatch : w)));
     setIsEditWatchModalOpen(false);
     showToast(`Updated watch settings for "${editingWatch.name}".`, "success");
   };
 
-  const handleDeleteWatch = (id: string) => {
+  const handleDeleteWatch = async (id: string) => {
     const target = watches.find((w) => w.id === id);
+    if (!demoDataEnabled) {
+      try {
+        await backendApi.unsubscribe(id);
+        await refreshBackendWatches();
+        if (target) showToast(`Stopped following "${target.name}".`, "info");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Could not remove this watch.", "error");
+      }
+      setActiveMenuWatchId(null);
+      return;
+    }
     setWatches((prev) => prev.filter((w) => w.id !== id));
     if (target) {
       setRecentChanges((prev) => prev.filter((c) => c.title !== target.name));
@@ -586,9 +788,19 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     setActiveMenuWatchId(null);
   };
 
-  const handleCheckNow = (id: string) => {
+  const handleCheckNow = async (id: string) => {
     const target = watches.find((w) => w.id === id);
     if (!target) return;
+    if (!demoDataEnabled) {
+      setActiveMenuWatchId(null);
+      try {
+        await backendApi.checkNow(id);
+        showToast(`Queued a fresh check for "${target.name}".`, "success");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Could not queue this check.", "error");
+      }
+      return;
+    }
     setWatches((prev) =>
       prev.map((w) =>
         w.id === id
@@ -619,10 +831,44 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     showToast(`Checked "${target.name}" — verified, no new changes!`, "success");
   };
 
-  const openDiffInspector = (watchId: string) => {
+  const openDiffInspector = async (watchId: string) => {
     setActiveDiffWatchId(watchId);
     setActiveTab("diff");
     setActiveMenuWatchId(null);
+    setActiveSkippedFilter(null);
+
+    if (demoDataEnabled) {
+      setLiveDiffLines(null);
+      setLiveSkippedItems(null);
+      return;
+    }
+
+    setDiffLoading(true);
+    setLiveDiffLines([]);
+    setLiveSkippedItems([]);
+    setDiffReason("");
+    try {
+      const watch = watches.find((item) => item.id === watchId);
+      let detectedAt = watch?.latestDetectedAt;
+      let summary = watch?.latestSummary || "";
+      if (!detectedAt) {
+        const timeline = await backendApi.getWatch(watchId);
+        detectedAt = timeline.timeline[0]?.detectedAt;
+        summary = timeline.timeline[0]?.summary || summary;
+      }
+      if (!detectedAt) {
+        throw new BackendApiError("No recorded change exists for this watch yet.", 404, "no_change");
+      }
+      const { blocks } = await backendApi.getDiff(watchId, detectedAt);
+      const lines = diffBlocksToLines(blocks);
+      setLiveDiffLines(lines);
+      setLiveSkippedItems(summarizeSkippedItems(lines));
+      setDiffReason(summary);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not load this diff.", "error");
+    } finally {
+      setDiffLoading(false);
+    }
   };
 
   const openLogbook = (pub: PublicWatch) => {
@@ -631,15 +877,22 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
   };
 
   /* Settings Actions */
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileNameInput.trim()) return;
-    updateUserProfile({ fullName: profileNameInput.trim(), email: profileEmailInput.trim() });
-    setIsEditProfileOpen(false);
-    showToast("Profile updated successfully!", "success");
+    try {
+      await updateUserProfile({
+        fullName: profileNameInput.trim(),
+        profileRole: profileRoleInput.trim() || undefined,
+      });
+      setIsEditProfileOpen(false);
+      showToast("Profile updated successfully!", "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not update profile.", "error");
+    }
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
     if (!currPassword) {
@@ -654,34 +907,66 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
       setPasswordError("New passwords do not match.");
       return;
     }
-    setCurrPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setIsChangePasswordOpen(false);
-    showToast("Your password has been changed successfully!", "success");
-  };
-
-  const handleToggle2FA = () => {
-    if (is2FAEnabled) {
-      setIs2FAEnabled(false);
-      localStorage.setItem("checkon_2fa_enabled", "false");
-      showToast("Two-factor authentication disabled.", "info");
-    } else {
-      setIs2FAModalOpen(true);
+    try {
+      await trpc.account.changePassword.mutate({
+        currentPassword: currPassword,
+        newPassword,
+        confirmPassword,
+      });
+      setCurrPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setIsChangePasswordOpen(false);
+      showToast("Your password has been changed successfully!", "success");
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : "Could not change password.");
     }
   };
 
-  const handleConfirm2FA = (e: React.FormEvent) => {
+  const handleToggle2FA = async () => {
+    if (user?.provider !== "password") {
+      showToast("Authenticator 2FA is available for password accounts.", "info");
+      return;
+    }
+    setTwoFactorCode("");
+    if (is2FAEnabled) {
+      setIs2FAModalOpen(true);
+      return;
+    }
+    try {
+      const setup = await trpc.account.beginTotp.mutate();
+      setTwoFactorSecret(setup.secret);
+      setTwoFactorUri(setup.otpauthUri);
+      setIs2FAModalOpen(true);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not start 2FA setup.", "error");
+    }
+  };
+
+  const handleConfirm2FA = async (e: React.FormEvent) => {
     e.preventDefault();
     if (twoFactorCode.trim().length !== 6) {
       showToast("Please enter the 6-digit verification code.", "error");
       return;
     }
-    setIs2FAEnabled(true);
-    localStorage.setItem("checkon_2fa_enabled", "true");
-    setTwoFactorCode("");
-    setIs2FAModalOpen(false);
-    showToast("Two-factor authentication enabled successfully! 🛡️", "success");
+    try {
+      const nextUser = is2FAEnabled
+        ? await trpc.account.disableTotp.mutate({ code: twoFactorCode })
+        : await trpc.account.enableTotp.mutate({ code: twoFactorCode });
+      setIs2FAEnabled(nextUser.totpEnabled);
+      setTwoFactorCode("");
+      setTwoFactorSecret("");
+      setTwoFactorUri("");
+      setIs2FAModalOpen(false);
+      showToast(
+        nextUser.totpEnabled
+          ? "Two-factor authentication enabled successfully! 🛡️"
+          : "Two-factor authentication disabled.",
+        nextUser.totpEnabled ? "success" : "info",
+      );
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not update 2FA.", "error");
+    }
   };
 
   const handleExportData = () => {
@@ -727,7 +1012,18 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     showToast(`Signed out device "${deviceName}".`, "info");
   };
 
-  const handleDeleteAllWatches = () => {
+  const handleDeleteAllWatches = async () => {
+    if (!demoDataEnabled) {
+      try {
+        await Promise.all(watches.map((watch) => backendApi.unsubscribe(watch.id)));
+        await refreshBackendWatches();
+        setIsDeleteAllConfirmOpen(false);
+        showToast("All subscriptions were removed.", "info");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Could not remove all watches.", "error");
+      }
+      return;
+    }
     setWatches([]);
     setRecentChanges([]);
     setIsDeleteAllConfirmOpen(false);
@@ -746,12 +1042,35 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     void logout();
   };
 
-  const handleLogbookSubscribe = (e: React.FormEvent, pubId: string, pubTitle: string) => {
+  const handleLogbookSubscribe = async (e: React.FormEvent, pubId: string, pubTitle: string) => {
     e.preventDefault();
     if (!logbookEmail || !logbookEmail.includes("@")) {
       showToast("Please enter a valid email address.", "error");
       return;
     }
+    const pub = publicWatches.find((item) => item.id === pubId);
+    if (!pub) return;
+
+    if (!demoDataEnabled) {
+      try {
+        const watch = await backendApi.createWatch({ url: pub.url, title: pub.title, checkIntervalMinutes: 15 });
+        await backendApi.subscribe({
+          watchId: watch.watchId,
+          conditionText: "any meaningful content change",
+          deliveryMode: "instant",
+          email: logbookEmail,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        });
+        const next = { ...subscribedWatches, [pubId]: true };
+        setSubscribedWatches(next);
+        await refreshBackendWatches();
+        showToast(`Subscribed! Real change alerts for "${pubTitle}" will be sent to ${logbookEmail}.`, "success");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Could not subscribe.", "error");
+      }
+      return;
+    }
+
     const next = { ...subscribedWatches, [pubId]: true };
     setSubscribedWatches(next);
     try {
@@ -760,7 +1079,24 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
     showToast(`Subscribed! Real change alerts for "${pubTitle}" will be sent to ${logbookEmail}.`, "success");
   };
 
-  const handleLogbookUnsubscribe = (pubId: string, pubTitle: string) => {
+  const handleLogbookUnsubscribe = async (pubId: string, pubTitle: string) => {
+    const pub = publicWatches.find((item) => item.id === pubId);
+    if (!pub) return;
+
+    if (!demoDataEnabled) {
+      try {
+        const watch = await backendApi.createWatch({ url: pub.url, title: pub.title, checkIntervalMinutes: 15 });
+        await backendApi.unsubscribe(watch.watchId);
+        const next = { ...subscribedWatches, [pubId]: false };
+        setSubscribedWatches(next);
+        await refreshBackendWatches();
+        showToast(`Unsubscribed from "${pubTitle}".`, "info");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Could not unsubscribe.", "error");
+      }
+      return;
+    }
+
     const next = { ...subscribedWatches, [pubId]: false };
     setSubscribedWatches(next);
     try {
@@ -918,7 +1254,24 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
         </div>
       </div>
 
-      {filteredWatches.length === 0 ? (
+      {dashboardLoading ? (
+        <div className="watches-empty-state">
+          <RefreshCw size={24} className="spin" />
+          <h3 className="empty-title">Loading your watches...</h3>
+        </div>
+      ) : dashboardError ? (
+        <div className="watches-empty-state">
+          <div className="empty-icon-box">
+            <AlertTriangle size={24} />
+          </div>
+          <h3 className="empty-title">Could not load your watches</h3>
+          <p className="empty-desc">{dashboardError}</p>
+          <button type="button" className="btn-empty-add" onClick={() => void refreshBackendWatches()}>
+            <RefreshCw size={16} />
+            <span>Try again</span>
+          </button>
+        </div>
+      ) : filteredWatches.length === 0 ? (
         <div className="watches-empty-state">
           <div className="empty-icon-box">
             <Globe size={24} />
@@ -1101,11 +1454,13 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
   const renderDiffInspector = () => {
     const watch = watches.find((w) => w.id === activeDiffWatchId);
     const watchName = watch?.name || "UPSC notifications";
-    const totalNoise = demoSkippedItems.reduce((sum, s) => sum + s.count, 0);
-    const realChanges = demoDiffLines.filter((l) => l.type === "added").length;
+    const diffLines = liveDiffLines ?? demoDiffLines;
+    const skippedItems = liveSkippedItems ?? demoSkippedItems;
+    const totalNoise = skippedItems.reduce((sum, s) => sum + s.count, 0);
+    const realChanges = diffLines.filter((l) => l.type === "added").length;
 
     /* Filter lines based on active view tab & skipped item filter */
-    const displayedLines = demoDiffLines.filter((line) => {
+    const displayedLines = diffLines.filter((line) => {
       if (activeSkippedFilter) {
         return line.noiseCategory === activeSkippedFilter || line.type === "added";
       }
@@ -1142,7 +1497,8 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
               <span className="diff-muted">{totalNoise} weren't.</span>
             </h1>
             <p className="diff-meta">
-              {watch?.url?.replace(/^https?:\/\//, "") || "upsc.gov.in/whats-new"} &middot; 17 Sep 2026, 09:30:12 &rarr; 09:40:07 IST
+              {watch?.url?.replace(/^https?:\/\//, "") || "upsc.gov.in/whats-new"}
+              {watch?.latestDetectedAt ? ` · ${formatLastChecked(watch.latestDetectedAt)}` : ""}
             </p>
           </div>
           <div className="diff-stamp">
@@ -1222,6 +1578,10 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                 </button>
               )}
             </div>
+            {diffLoading && <p className="diff-card-body">Loading the recorded diff...</p>}
+            {!diffLoading && displayedLines.length === 0 && (
+              <p className="diff-card-body">No diff artifact is available for this change.</p>
+            )}
             {displayedLines.map((line) => {
               const isFilteredNoise = activeSkippedFilter && line.noiseCategory === activeSkippedFilter;
               return (
@@ -1253,18 +1613,16 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
             <div className="diff-sidebar-card why-mattered">
               <h3 className="diff-card-heading">Why this mattered</h3>
               <p className="diff-card-body">
-                You asked to hear when <strong>&ldquo;the CSE 2026 final result is posted&rdquo;</strong>
+                You asked to hear when <strong>&ldquo;{watch?.tellMeIf || "a meaningful change happens"}&rdquo;</strong>
               </p>
-              <p className="diff-card-detail">
-                Line 6 is new and mentions &ldquo;Final Result&rdquo; and &ldquo;Civil Services Examination, 2026&rdquo;.
-              </p>
+              <p className="diff-card-detail">{diffReason || watch?.latestSummary || "This change matched your watch condition."}</p>
             </div>
             <div className="diff-sidebar-card what-skipped">
               <div className="diff-card-header-row">
                 <h3 className="diff-card-heading">What we skipped</h3>
                 <span className="diff-card-hint">tap one to trace it</span>
               </div>
-              {demoSkippedItems.map((item) => {
+              {skippedItems.map((item) => {
                 const isActive = activeSkippedFilter === item.category;
                 return (
                   <div
@@ -1668,7 +2026,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                   style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", textDecoration: "underline", padding: 0 }}
                   onClick={() => {
                     setDigestFrequency("off");
-                    localStorage.setItem("checkon_digest_freq", "off");
+                    void persistAccountSettings({ digestFrequency: "off", weeklyDigest: false });
                     showToast("Unsubscribed from digests.", "info");
                   }}
                 >
@@ -1710,9 +2068,10 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                 className="form-select"
                 value={digestFrequency}
                 onChange={(e) => {
-                  setDigestFrequency(e.target.value);
-                  localStorage.setItem("checkon_digest_freq", e.target.value);
-                  showToast(`Digest frequency updated to ${e.target.value}!`, "success");
+                  const next = e.target.value as AccountSettings["digestFrequency"];
+                  setDigestFrequency(next);
+                  void persistAccountSettings({ digestFrequency: next, weeklyDigest: next !== "off" });
+                  showToast(`Digest frequency updated to ${next}!`, "success");
                 }}
                 style={{ width: 160 }}
               >
@@ -1732,7 +2091,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                 value={digestDeliveryTime}
                 onChange={(e) => {
                   setDigestDeliveryTime(e.target.value);
-                  localStorage.setItem("checkon_digest_time", e.target.value);
+                  void persistAccountSettings({ digestTime: e.target.value });
                   showToast(`Delivery time updated to ${e.target.value} IST!`, "success");
                 }}
                 style={{ width: 160 }}
@@ -1756,7 +2115,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                   checked={includeQuietWatches}
                   onChange={(e) => {
                     setIncludeQuietWatches(e.target.checked);
-                    localStorage.setItem("checkon_digest_quiet", String(e.target.checked));
+                    void persistAccountSettings({ includeQuietWatches: e.target.checked });
                     showToast(
                       e.target.checked ? "Quiet watches will be included in digest." : "Quiet watches will be excluded.",
                       "info"
@@ -1795,7 +2154,9 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
           <p className="settings-subtitle">Manage your account, notifications, and preferences.</p>
         </div>
 
-        {/* Profile Section */}
+        <div className="settings-layout-grid">
+          <div className="settings-left-col">
+            {/* Profile Section */}
         <div className="settings-section">
           <div className="settings-section-header">
             <div className="settings-section-icon">
@@ -1816,6 +2177,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                 onClick={() => {
                   setProfileNameInput(user?.fullName || "");
                   setProfileEmailInput(user?.email || "");
+                  setProfileRoleInput(user?.profileRole || "");
                   setIsEditProfileOpen(true);
                 }}
               >
@@ -1845,7 +2207,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                   checked={notifEmailAlerts}
                   onChange={(e) => {
                     setNotifEmailAlerts(e.target.checked);
-                    localStorage.setItem("checkon_notif_email", String(e.target.checked));
+                    void persistAccountSettings({ emailAlerts: e.target.checked });
                     showToast(e.target.checked ? "Email alerts enabled." : "Email alerts paused.", "info");
                   }}
                 />
@@ -1863,7 +2225,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                   checked={notifWeeklyDigest}
                   onChange={(e) => {
                     setNotifWeeklyDigest(e.target.checked);
-                    localStorage.setItem("checkon_notif_digest", String(e.target.checked));
+                    void persistAccountSettings({ weeklyDigest: e.target.checked });
                     showToast(e.target.checked ? "Weekly digest enabled." : "Weekly digest paused.", "info");
                   }}
                 />
@@ -1882,7 +2244,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                   onChange={(e) => {
                     const next = e.target.checked;
                     setNotifPush(next);
-                    localStorage.setItem("checkon_notif_push", String(next));
+                    void persistAccountSettings({ pushNotifications: next });
                     if (next && "Notification" in window) {
                       void Notification.requestPermission();
                     }
@@ -1903,7 +2265,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                   checked={notifNoiseFiltering}
                   onChange={(e) => {
                     setNotifNoiseFiltering(e.target.checked);
-                    localStorage.setItem("checkon_notif_noise", String(e.target.checked));
+                    void persistAccountSettings({ noiseFiltering: e.target.checked });
                     showToast(
                       e.target.checked
                         ? "AI noise filtering is on. Skipping clocks & badges."
@@ -1972,6 +2334,8 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
               <button
                 type="button"
                 className="settings-edit-btn"
+                disabled={user?.provider !== "password"}
+                title={user?.provider !== "password" ? "Managed by your sign-in provider" : undefined}
                 onClick={() => {
                   setPasswordError("");
                   setIsChangePasswordOpen(true);
@@ -1995,6 +2359,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
               <button
                 type="button"
                 className="settings-edit-btn"
+                disabled={user?.provider !== "password"}
                 onClick={handleToggle2FA}
               >
                 {is2FAEnabled ? "Disable" : "Enable"}
@@ -2065,7 +2430,19 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
           <span>Member since Sep 2026</span>
         </div>
       </div>
-    );
+
+      <aside className="settings-right-col">
+        <div className="settings-doodle-wrap">
+          <img
+            src="/assets/settings-doodle.png"
+            alt="Your preferences. A calmer internet."
+            className="settings-side-doodle-img"
+          />
+        </div>
+      </aside>
+    </div>
+  </div>
+);
   };
 
   /* ====================================================================
@@ -2501,7 +2878,8 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                   type="email"
                   className="form-input"
                   value={profileEmailInput}
-                  onChange={(e) => setProfileEmailInput(e.target.value)}
+                  readOnly
+                  title="Email changes are disabled to preserve watch ownership."
                   required
                 />
               </div>
@@ -2591,11 +2969,14 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
         <div className="checkon-modal-overlay" onClick={() => setIs2FAModalOpen(false)} role="dialog" aria-modal="true">
           <div className="checkon-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Set Up Two-Factor Authentication</h3>
+              <h3 className="modal-title">
+                {is2FAEnabled ? "Disable Two-Factor Authentication" : "Set Up Two-Factor Authentication"}
+              </h3>
               <button type="button" className="modal-close-btn" onClick={() => setIs2FAModalOpen(false)} aria-label="Close">
                 <X size={18} />
               </button>
             </div>
+            {!is2FAEnabled && (
             <div style={{ textAlign: "center", margin: "10px 0 20px" }}>
               <div
                 style={{
@@ -2613,15 +2994,23 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                 }}
               >
                 <Shield size={32} color="#059669" />
-                <span style={{ fontSize: 11, color: "#6B7280" }}>Scan in Google Authenticator</span>
+                <span style={{ fontSize: 11, color: "#6B7280" }}>Add this key to your authenticator</span>
               </div>
               <div style={{ fontSize: 12, color: "#4B5563" }}>
-                Secret key: <code style={{ background: "#F3F4F6", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>CKON-7892-XZPQ-4412</code>
+                Secret key: <code style={{ background: "#F3F4F6", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>{twoFactorSecret}</code>
               </div>
+              {twoFactorUri && (
+                <a href={twoFactorUri} style={{ display: "inline-block", marginTop: 10, fontSize: 12 }}>
+                  Open in authenticator app
+                </a>
+              )}
             </div>
+            )}
             <form onSubmit={handleConfirm2FA} className="modal-form">
               <div className="form-group">
-                <label className="form-label">Enter 6-digit Code</label>
+                <label className="form-label">
+                  {is2FAEnabled ? "Enter a current code to disable 2FA" : "Enter 6-digit Code"}
+                </label>
                 <input
                   type="text"
                   maxLength={6}
@@ -2638,7 +3027,7 @@ export function Dashboard({ onSwitchToLanding }: DashboardProps) {
                   Cancel
                 </button>
                 <button type="submit" className="btn-modal-submit">
-                  Verify & Enable
+                  {is2FAEnabled ? "Verify & Disable" : "Verify & Enable"}
                 </button>
               </div>
             </form>

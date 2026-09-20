@@ -11,6 +11,7 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { fetchFunctionDefaults, nodeFunctionDefaults } from "./lambda-defaults";
 import { ChangePipeline } from "./state-machine";
+import type { AgentSafety } from "./agent-safety";
 
 export interface PipelineStackProps extends StackProps {
   watchesTable: dynamodb.Table;
@@ -20,11 +21,14 @@ export interface PipelineStackProps extends StackProps {
   snapshotsBucket: s3.Bucket;
   publicSiteBucket: s3.Bucket;
   bedrockModelArn: string;
+  agentSafety: AgentSafety;
   publicSiteUrl: string;
   sesFromAddress: string;
 }
 
 export class PipelineStack extends Stack {
+  public readonly fetchQueue: sqs.Queue;
+
   constructor(scope: Construct, id: string, props: PipelineStackProps) {
     super(scope, id, props);
 
@@ -34,6 +38,7 @@ export class PipelineStack extends Stack {
       visibilityTimeout: Duration.seconds(60), // 6x the fetch Lambda timeout, per AWS guidance
       deadLetterQueue: { queue: fetchDlq, maxReceiveCount: 3 },
     });
+    this.fetchQueue = fetchQueue;
 
     // Dispatcher: scheduled tick -> enqueue due watches
     const dispatcherFn = new NodejsFunction(this, "DispatcherFn", {
@@ -84,6 +89,7 @@ export class PipelineStack extends Stack {
       digestQueueTable: props.digestQueueTable,
       snapshotsBucket: props.snapshotsBucket,
       bedrockModelArn: props.bedrockModelArn,
+      agentSafety: props.agentSafety,
       publicSiteUrl: props.publicSiteUrl,
       sesFromAddress: props.sesFromAddress,
     });

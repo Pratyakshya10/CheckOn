@@ -1,11 +1,17 @@
 import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
-import { X, Mail, Lock, Eye, EyeOff, User, ArrowRight } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, User, ArrowRight, Shield } from "lucide-react";
 import { useAuth } from "./auth-context";
 import { GoogleIcon } from "./google-icon";
 import "./auth.css";
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Authentication failed. Please try again.";
+}
+
+function isTotpRequired(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const data = "data" in error && error.data && typeof error.data === "object" ? error.data : null;
+  return Boolean(data && "code" in data && data.code === "PRECONDITION_FAILED");
 }
 
 export function AuthModal() {
@@ -29,6 +35,8 @@ export function AuthModal() {
   const [error, setError] = useState("");
   const [infoMsg, setInfoMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [totpRequired, setTotpRequired] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
 
   const isLogin = authMode === "sign-in";
 
@@ -57,6 +65,8 @@ export function AuthModal() {
     setShowPassword(false);
     setError("");
     setInfoMsg("");
+    setTotpRequired(false);
+    setTotpCode("");
   }, [authMode]);
 
   useEffect(() => {
@@ -74,12 +84,17 @@ export function AuthModal() {
 
     try {
       if (isLogin) {
-        await login(email, password, keepSignedIn);
+        await login(email, password, keepSignedIn, totpRequired ? totpCode : undefined);
       } else {
         await signup(fullName, email, password, confirmPassword, keepSignedIn);
       }
     } catch (err) {
-      setError(errorMessage(err));
+      if (isTotpRequired(err)) {
+        setTotpRequired(true);
+        setError("");
+      } else {
+        setError(errorMessage(err));
+      }
     } finally {
       setLoading(false);
     }
@@ -174,6 +189,25 @@ export function AuthModal() {
                   autoFocus={isLogin}
                 />
               </div>
+
+              {isLogin && totpRequired && (
+                <div className="checkon-input-group">
+                  <Shield className="checkon-input-icon" size={18} />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    className="checkon-input-field"
+                    placeholder="6-digit authenticator code"
+                    value={totpCode}
+                    onChange={(event) => setTotpCode(event.target.value.replace(/\D/g, ""))}
+                    required
+                    autoComplete="one-time-code"
+                    autoFocus
+                  />
+                </div>
+              )}
 
               <div className="checkon-input-group">
                 <Lock className="checkon-input-icon" size={18} />

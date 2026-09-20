@@ -26,6 +26,16 @@
   --dash-status-red-text: #B91C1C;
 }
 
+@keyframes checkon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: checkon-spin 0.9s linear infinite;
+}
+
 /* Base Dashboard Layout */
 .checkon-dashboard-wrapper {
   display: flex;
@@ -3104,8 +3114,57 @@
 .settings-view {
   display: flex;
   flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.settings-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
   gap: 28px;
-  max-width: 720px;
+  align-items: start;
+}
+
+.settings-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+  width: 100%;
+}
+
+.settings-right-col {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: -68px;
+}
+
+.settings-doodle-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.settings-side-doodle-img {
+  width: 100%;
+  max-width: 395px;
+  max-height: calc(100vh - 115px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.05));
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 1140px) {
+  .settings-layout-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-right-col {
+    display: none;
+  }
 }
 
 .settings-header {

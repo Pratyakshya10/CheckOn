@@ -1,4 +1,4 @@
-import { PutCommand, QueryCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand, QueryCommand, DeleteCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, TABLE_SUBSCRIPTIONS } from "./client";
 import type { Subscription } from "../../types/subscription";
 
@@ -8,6 +8,13 @@ export async function putSubscription(sub: Subscription): Promise<void> {
 
 export async function deleteSubscription(userId: string, watchId: string): Promise<void> {
   await ddb.send(new DeleteCommand({ TableName: TABLE_SUBSCRIPTIONS, Key: { userId, watchId } }));
+}
+
+export async function getSubscription(userId: string, watchId: string): Promise<Subscription | null> {
+  const res = await ddb.send(
+    new GetCommand({ TableName: TABLE_SUBSCRIPTIONS, Key: { userId, watchId } }),
+  );
+  return (res.Item as Subscription | undefined) ?? null;
 }
 
 export async function listSubscriptionsForUser(userId: string): Promise<Subscription[]> {

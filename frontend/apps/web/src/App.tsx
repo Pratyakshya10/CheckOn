@@ -1,12 +1,35 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, LogOut, User } from "lucide-react";
+import { lazy, Suspense, useState, useEffect, type FormEvent } from "react";
+import {
+  ArrowRight,
+  LogOut,
+  User,
+  Plane,
+  ShoppingCart,
+  FileText,
+  Briefcase,
+  Landmark,
+  Globe,
+  Link2,
+  SlidersHorizontal,
+  Bell,
+  ExternalLink,
+} from "lucide-react";
+import { backendApi, type TrialCheckResponse } from "./api/backend-client";
 import { useAuth } from "./auth/auth-context";
 import { AuthModal } from "./auth/auth-modal";
-import { Dashboard } from "./dashboard/Dashboard";
+
+const Dashboard = lazy(() =>
+  import("./dashboard/Dashboard").then((module) => ({ default: module.Dashboard })),
+);
 
 export default function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [viewLandingOverride, setViewLandingOverride] = useState(false);
+  const [trialUrl, setTrialUrl] = useState("");
+  const [trialCondition, setTrialCondition] = useState("");
+  const [trialLoading, setTrialLoading] = useState(false);
+  const [trialError, setTrialError] = useState("");
+  const [trialResult, setTrialResult] = useState<TrialCheckResponse | null>(null);
   const { user, openAuth, logout } = useAuth();
 
   useEffect(() => {
@@ -17,9 +40,33 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const handleTrialSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setTrialError("");
+    setTrialResult(null);
+    setTrialLoading(true);
+    try {
+      const url = trialUrl.startsWith("http") ? trialUrl : `https://${trialUrl}`;
+      setTrialResult(
+        await backendApi.trialCheck({
+          url,
+          conditionText: trialCondition.trim() || "any meaningful content change",
+        }),
+      );
+    } catch (error) {
+      setTrialError(error instanceof Error ? error.message : "The trial check could not run.");
+    } finally {
+      setTrialLoading(false);
+    }
+  };
+
   // When user signs in, immediately show the Dashboard
   if (user && !viewLandingOverride) {
-    return <Dashboard onSwitchToLanding={() => setViewLandingOverride(true)} />;
+    return (
+      <Suspense fallback={<div className="page-loading">Loading your dashboard…</div>}>
+        <Dashboard onSwitchToLanding={() => setViewLandingOverride(true)} />
+      </Suspense>
+    );
   }
 
   return (
@@ -107,15 +154,22 @@ export default function App() {
             </p>
 
             <div className="hero-actions">
-              <button className="btn-hero-primary" onClick={() => openAuth("sign-up")}>
+              <a className="btn-hero-primary" href="#try-it">
                 Start watching — it's free <ArrowRight size={16} />
-              </button>
+              </a>
               <a href="#example" className="btn-hero-secondary">
                 See example
               </a>
             </div>
 
-            <div className="hero-trust-note">No credit card. No spam. Just meaningful updates.</div>
+            <div className="hero-social-proof">
+              <img
+                src="/assets/doodle-avatars.png"
+                alt="Community members"
+                className="hero-doodle-avatars"
+              />
+              <span className="hero-proof-text">Join the queue for early access.</span>
+            </div>
           </div>
 
           <div className="hero-visual-wrap">
@@ -127,69 +181,280 @@ export default function App() {
           </div>
         </section>
 
+        <section className="trial-section" id="try-it">
+          <div className="trial-card">
+            <div className="trial-copy">
+              <span className="section-eyebrow">TRY IT WITHOUT SIGNING UP</span>
+              <h2 className="trial-title">Check one public page now.</h2>
+              <p className="trial-description">
+                Paste a URL and describe the change you care about. We will fetch the live page and tell you what is there.
+              </p>
+            </div>
+
+            <form className="trial-form" onSubmit={handleTrialSubmit}>
+              <label className="trial-label" htmlFor="trial-url">Public webpage</label>
+              <input
+                id="trial-url"
+                className="trial-input"
+                type="text"
+                inputMode="url"
+                placeholder="example.com/notices"
+                value={trialUrl}
+                onChange={(event) => setTrialUrl(event.target.value)}
+                required
+              />
+              <label className="trial-label" htmlFor="trial-condition">Tell me if...</label>
+              <input
+                id="trial-condition"
+                className="trial-input"
+                type="text"
+                placeholder="the application deadline changes"
+                value={trialCondition}
+                onChange={(event) => setTrialCondition(event.target.value)}
+              />
+              <button className="trial-submit" type="submit" disabled={trialLoading}>
+                {trialLoading ? "Checking the live page..." : "Run free check"}
+                {!trialLoading && <ArrowRight size={16} />}
+              </button>
+            </form>
+
+            {trialError && <div className="trial-message error" role="alert">{trialError}</div>}
+            {trialResult && (
+              <div className={`trial-message ${trialResult.matched ? "matched" : "ready"}`} aria-live="polite">
+                <strong>{trialResult.matched ? "Your condition currently matches." : "Live check complete."}</strong>
+                <span>{trialResult.matchReason || trialResult.currentState}</span>
+                <button type="button" onClick={() => openAuth("sign-up")}>Save this watch</button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="use-cases-section" id="use-cases">
+          <div className="use-cases-header">
+            <div className="use-cases-title-col">
+              <img
+                src="/assets/use-cases-heading.png"
+                alt="If it's public, you can watch it."
+                className="use-cases-heading-img"
+              />
+            </div>
+            <div className="use-cases-desc-col">
+              <p className="use-cases-desc">
+                From ticket availability to job updates —
+                <br />
+                CheckOn works on any public website.
+              </p>
+            </div>
+            <div className="use-cases-doodle-col">
+              <img
+                src="/assets/different-use-cases-doodle.png"
+                alt="Different use cases, same peace of mind."
+                className="use-cases-doodle-img"
+              />
+            </div>
+          </div>
+
+          <div className="use-cases-grid">
+            <div className="use-case-card">
+              <div className="use-case-icon">
+                <Plane size={28} strokeWidth={1.8} />
+              </div>
+              <h3 className="use-case-title">Travel &amp; Tickets</h3>
+              <p className="use-case-desc">Flight, train, event tickets</p>
+            </div>
+
+            <div className="use-case-card">
+              <div className="use-case-icon">
+                <ShoppingCart size={28} strokeWidth={1.8} />
+              </div>
+              <h3 className="use-case-title">Price Drops</h3>
+              <p className="use-case-desc">Get notified when prices change</p>
+            </div>
+
+            <div className="use-case-card">
+              <div className="use-case-icon">
+                <FileText size={28} strokeWidth={1.8} />
+              </div>
+              <h3 className="use-case-title">College Portals</h3>
+              <p className="use-case-desc">Notices, results, admissions</p>
+            </div>
+
+            <div className="use-case-card">
+              <div className="use-case-icon">
+                <Briefcase size={28} strokeWidth={1.8} />
+              </div>
+              <h3 className="use-case-title">Job Openings</h3>
+              <p className="use-case-desc">New listings at your dream companies</p>
+            </div>
+
+            <div className="use-case-card">
+              <div className="use-case-icon">
+                <Landmark size={28} strokeWidth={1.8} />
+              </div>
+              <h3 className="use-case-title">Government Sites</h3>
+              <p className="use-case-desc">Policy updates, tenders, schemes</p>
+            </div>
+
+            <div className="use-case-card">
+              <div className="use-case-icon">
+                <Globe size={28} strokeWidth={1.8} />
+              </div>
+              <h3 className="use-case-title">Any Website</h3>
+              <p className="use-case-desc">If it's public, you can track it.</p>
+            </div>
+          </div>
+        </section>
+
         <section className="how-it-works-section" id="how-it-works">
-          <div className="section-eyebrow">HOW IT WORKS</div>
-          <h2 className="section-title">Three simple steps.</h2>
-
-          <div className="steps-row">
-            <div className="step-item">
-              <div className="step-num-badge">1</div>
-              <div className="step-icon-box">
-                <img src="/assets/icon-link.png" alt="Add a link" className="step-icon-img" />
+          <div className="how-it-works-card">
+            <div className="how-it-works-header">
+              <div>
+                <div className="section-eyebrow">HOW IT WORKS</div>
+                <h2 className="how-it-works-title">Three simple steps.</h2>
               </div>
-              <h3 className="step-title">Add a link</h3>
-              <p className="step-desc">Paste any public URL you want to monitor.</p>
+              <img
+                src="/assets/takes-less-doodle.png"
+                alt="Takes less than a minute!"
+                className="takes-less-doodle"
+              />
             </div>
 
-            <div className="step-separator-arrow">
-              <ArrowRight size={24} strokeWidth={1.6} />
-            </div>
-
-            <div className="step-item">
-              <div className="step-num-badge">2</div>
-              <div className="step-icon-box">
-                <img src="/assets/icon-sliders.png" alt="Set what matters" className="step-icon-img" />
+            <div className="steps-row">
+              <div className="step-item">
+                <div className="step-num-badge">1</div>
+                <div className="step-icon-box">
+                  <Link2 size={30} strokeWidth={2} />
+                </div>
+                <h3 className="step-title">Add a link</h3>
+                <p className="step-desc">Paste any public URL you want to monitor.</p>
               </div>
-              <h3 className="step-title">Set what matters</h3>
-              <p className="step-desc">Tell us what kind of changes to look for.</p>
-            </div>
 
-            <div className="step-separator-arrow">
-              <ArrowRight size={24} strokeWidth={1.6} />
-            </div>
-
-            <div className="step-item">
-              <div className="step-num-badge">3</div>
-              <div className="step-icon-box">
-                <img src="/assets/icon-bell.png" alt="Get notified" className="step-icon-img" />
+              <div className="step-separator-arrow">
+                <ArrowRight size={22} strokeWidth={1.6} />
               </div>
-              <h3 className="step-title">Get notified</h3>
-              <p className="step-desc">We'll alert you only when there's a real change.</p>
+
+              <div className="step-item">
+                <div className="step-num-badge">2</div>
+                <div className="step-icon-box">
+                  <SlidersHorizontal size={30} strokeWidth={2} />
+                </div>
+                <h3 className="step-title">Set what matters</h3>
+                <p className="step-desc">Tell us what kind of changes to look for.</p>
+              </div>
+
+              <div className="step-separator-arrow">
+                <ArrowRight size={22} strokeWidth={1.6} />
+              </div>
+
+              <div className="step-item">
+                <div className="step-num-badge">3</div>
+                <div className="step-icon-box">
+                  <Bell size={30} strokeWidth={2} />
+                </div>
+                <h3 className="step-title">Get notified</h3>
+                <p className="step-desc">We'll alert you only when there's a real change.</p>
+              </div>
             </div>
           </div>
         </section>
 
         <section className="diff-showcase-section" id="example">
-          <div className="diff-content">
-            <img src="/assets/badge-example.png" alt="EXAMPLE" className="badge-example-img" />
-            <h2 className="diff-headline">
-              A real change.
-              <br />A useful alert.
-            </h2>
-            <p className="diff-subtitle">Here's how a simple update looks on CheckOn.</p>
-            <div>
-              <button className="btn-hero-primary" onClick={() => openAuth("sign-up")}>
-                View live example <ArrowRight size={16} />
-              </button>
+          <div className="diff-card-container">
+            <div className="diff-content">
+              <div className="section-eyebrow">EXAMPLE</div>
+              <h2 className="diff-headline">
+                A real change.
+                <br />
+                A useful alert.
+              </h2>
+              <p className="diff-subtitle">Here's how a simple update looks on CheckOn.</p>
+              <div className="no-more-refreshing-wrap">
+                <img
+                  src="/assets/no-more-refreshing.png"
+                  alt="No more refreshing."
+                  className="no-more-refreshing-doodle"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="diff-preview-card-wrap">
-            <img
-              src="/assets/diff-card.png"
-              alt="Example Page diff showing before and after changes"
-              className="diff-card-main-img"
-            />
+            <div className="diff-visual-area">
+              {/* Before Card */}
+              <div className="browser-diff-card card-before">
+                <div className="browser-header">
+                  <div className="browser-traffic-dots">
+                    <span className="dot dot-red"></span>
+                    <span className="dot dot-yellow"></span>
+                    <span className="dot dot-green"></span>
+                  </div>
+                  <div className="browser-tab-info">
+                    <FileText size={14} className="browser-tab-icon" />
+                    <span className="browser-tab-title">Example Page</span>
+                    <span className="browser-tab-url">http://example.com</span>
+                    <ExternalLink size={12} className="browser-tab-ext" />
+                  </div>
+                </div>
+                <div className="browser-body">
+                  <div className="diff-badge badge-before">Before</div>
+                  <div className="skeleton-lines">
+                    <div className="skeleton-bar bar-w100"></div>
+                    <div className="skeleton-bar bar-w60"></div>
+                    <div className="diff-highlight diff-highlight-removed">
+                      <span className="diff-symbol">-</span>
+                      <div className="diff-highlight-bar bar-removed"></div>
+                    </div>
+                    <div className="skeleton-bar bar-w80"></div>
+                    <div className="skeleton-bar bar-w50"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Arrow between cards */}
+              <div className="diff-flow-arrow">
+                <ArrowRight size={24} strokeWidth={1.8} />
+              </div>
+
+              {/* After Card */}
+              <div className="browser-diff-card card-after">
+                <div className="browser-header">
+                  <div className="browser-traffic-dots">
+                    <span className="dot dot-red"></span>
+                    <span className="dot dot-yellow"></span>
+                    <span className="dot dot-green"></span>
+                  </div>
+                  <div className="browser-tab-info">
+                    <FileText size={14} className="browser-tab-icon" />
+                    <span className="browser-tab-title">Example Page</span>
+                    <span className="browser-tab-url">https://example.com</span>
+                  </div>
+                  <div className="change-detected-pill">
+                    <span className="detected-label">Change detected</span>
+                    <span className="detected-time">12 Sep, 2026 • 10:31 AM</span>
+                  </div>
+                </div>
+                <div className="browser-body">
+                  <div className="diff-badge badge-after">After</div>
+                  <div className="skeleton-lines">
+                    <div className="skeleton-bar bar-w100"></div>
+                    <div className="skeleton-bar bar-w60"></div>
+                    <div className="diff-highlight diff-highlight-added">
+                      <span className="diff-symbol">+</span>
+                      <div className="diff-highlight-bar bar-added"></div>
+                    </div>
+                    <div className="skeleton-bar bar-w80"></div>
+                    <div className="skeleton-bar bar-w50"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Doodle on right */}
+              <div className="from-this-wrap">
+                <img
+                  src="/assets/from-this-to-this.png"
+                  alt="From this... to this. Automatically."
+                  className="from-this-doodle"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -285,25 +550,31 @@ export default function App() {
         <section className="cta-banner-section">
           <div className="cta-banner-card">
             <div className="cta-banner-left">
-              <svg className="cta-curved-arrow" viewBox="0 0 44 44" fill="none" stroke="currentColor">
-                <path
-                  d="M 8 36 C 8 16, 20 8, 36 8 M 28 2 L 38 8 L 28 14"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <img src="/assets/cta-callout.png" alt="Stop checking. Start knowing." className="cta-callout-img" />
+              <img
+                src="/assets/one-less-thing-banner.png"
+                alt="One less thing to remember. Leave the checking to us. You've got better things to do."
+                className="cta-left-composite-img"
+              />
+            </div>
+
+            <div className="cta-banner-center">
+              <p className="cta-center-text">
+                Let CheckOn handle the monitoring,
+                <br />
+                so you can focus on what matters.
+              </p>
+              <button className="btn-cta-submit" onClick={() => openAuth("sign-up")}>
+                Get Started — it's free <ArrowRight size={18} />
+              </button>
+              <span className="cta-subnote">No credit card. No spam.</span>
             </div>
 
             <div className="cta-banner-right">
-              <div className="cta-action-wrap">
-                <button className="btn-cta-submit" onClick={() => openAuth("sign-up")}>
-                  Get Started — it's free <ArrowRight size={18} />
-                </button>
-                <span className="cta-subnote">Join thousands staying ahead.</span>
-              </div>
-              <img src="/assets/accent-burst.png" alt="" className="cta-burst-ray" />
+              <img
+                src="/assets/things-to-check-illustration.png"
+                alt="Things to check clipboard, sticky note, and A more informed internet for a brighter you doodle"
+                className="cta-illustration-img"
+              />
             </div>
           </div>
         </section>

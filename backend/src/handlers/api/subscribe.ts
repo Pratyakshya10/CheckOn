@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { getWatch } from "../../lib/db/watches";
-import { putSubscription } from "../../lib/db/subscriptions";
+import { getSubscription, putSubscription } from "../../lib/db/subscriptions";
 import { parseCondition } from "../../lib/bedrock/parse-condition";
 import { localHourToUtcHour } from "../../lib/timezone";
 import { ddb, TABLE_WATCHES } from "../../lib/db/client";
@@ -13,14 +13,29 @@ import type { SubscribeRequest } from "../../types/api";
  Condition parsing 
  */
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
-  const userId = getUserId(event);
-  const body = JSON.parse(event.body ?? "{}") as SubscribeRequest;
+  let body: SubscribeRequest & { email?: string };
+  try {
+    body = JSON.parse(event.body ?? "{}") as SubscribeRequest & { email?: string };
+  } catch {
+    return { statusCode: 400, body: JSON.stringify({ error: "body must be valid JSON" }) };
+  }
+  const sessionUser = getAuthUser(event);
+  const userId = sessionUser?.email ?? body.email;
 
   if (!userId) {
     return { statusCode: 401, body: JSON.stringify({ error: "email required to subscribe" }) };
   }
+  if (!sessionUser && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userId)) {
+    return { statusCode: 400, body: JSON.stringify({ error: "email must be valid" }) };
+  }
   if (!body.watchId) {
     return { statusCode: 400, body: JSON.stringify({ error: "watchId is required" }) };
+  }
+  if (typeof body.conditionText !== "string") {
+    return { statusCode: 400, body: JSON.stringify({ error: "conditionText must be a string" }) };
+  }
+  if (body.deliveryMode !== "instant" && body.deliveryMode !== "digest") {
+    return { statusCode: 400, body: JSON.stringify({ error: "deliveryMode must be instant or digest" }) };
   }
 
   const watch = await getWatch(body.watchId);
@@ -47,8 +62,9 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     timezone,
   };
 
+  const existing = await getSubscription(userId, body.watchId);
   await putSubscription(subscription);
-  await incrementSubscriberCount(body.watchId);
+  if (!existing) await incrementSubscriberCount(body.watchId);
 
   return { statusCode: 201, body: JSON.stringify(subscription) };
 }
@@ -62,17 +78,4 @@ async function incrementSubscriberCount(watchId: string): Promise<void> {
       ExpressionAttributeValues: { ":one": 1 },
     })
   );
-}
-
-/**
- * Signed-in users (Google, via apps/api) carry the checkon_session cookie —
- * verify that first. Zero-signup subscribers (§8.1) never had a session;
- * they just typed an email into the subscribe form, so fall back to that.
- */
-function getUserId(event: APIGatewayProxyEventV2): string | undefined {
-  const sessionUser = getAuthUser(event);
-  if (sessionUser) return sessionUser.email;
-
-  const body = JSON.parse(event.body ?? "{}") as { email?: string };
-  return body.email;
 }
