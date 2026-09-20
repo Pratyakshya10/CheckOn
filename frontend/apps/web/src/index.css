@@ -32,6 +32,9 @@
 html {
   scroll-behavior: smooth;
   background-color: var(--bg-page);
+  /* Scale the whole app down slightly so pages fit within one viewport
+     without scrolling, on landing, auth, and dashboard alike. */
+  zoom: 0.85;
 }
 
 body {
