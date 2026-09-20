@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -8,6 +10,8 @@ import { env } from "./env";
 import { backendProxyRouter } from "./routes/backend-proxy";
 import { googleAuthRouter } from "./routes/google-auth";
 import { clearSession, readSession, setSession } from "./services/session";
+
+const webDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../web/dist");
 
 const app = express();
 
@@ -47,6 +51,12 @@ app.use(
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "checkon-api" });
+});
+
+app.use(express.static(webDist));
+app.use((req, res, next) => {
+  if (req.method !== "GET") return next();
+  res.sendFile(path.join(webDist, "index.html"));
 });
 
 app.listen(env.PORT, () => {
